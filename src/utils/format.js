@@ -1,0 +1,26 @@
+export function formatCurrency(value) {
+  const n = Math.round(value);
+  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
+  if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
+  return `$${n}`;
+}
+
+export function formatNumber(value) {
+  const n = Math.round(value);
+  if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return `${n}`;
+}
+
+export function formatPercent(value) {
+  return `${Math.round(value * 100)}%`;
+}
+
+export function formatDuration(ms) {
+  if (ms <= 0) return "selesai";
+  const s = Math.ceil(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const rs = s % 60;
+  return `${m}m ${rs}s`;
+}
