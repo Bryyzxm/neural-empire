@@ -45,9 +45,10 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
           EXPO_PUBLIC_CREATE_ENV: PRODUCTION
+          GRADLE_OPTS: -Xmx5g -XX:MaxMetaspaceSize=1024m -Dorg.gradle.jvmargs=-Xmx5g -Dkotlin.daemon.jvm.options=-Xmx2g
         run: |
           printf 'sdk.dir=%s\n' "$ANDROID_HOME" > local.properties
-          ./gradlew :app:assembleRelease -x lint -x lintVitalAnalyzeRelease --no-daemon --stacktrace
+          ./gradlew :app:assembleRelease -x lint -x lintVitalAnalyzeRelease --no-daemon --no-parallel --stacktrace -Dorg.gradle.jvmargs="-Xmx5g -XX:MaxMetaspaceSize=1024m"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
