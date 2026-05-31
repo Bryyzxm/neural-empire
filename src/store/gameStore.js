@@ -7,14 +7,19 @@ import {
   DATA_QUALITY_TIERS,
   RESEARCH_NODES,
   MARKET_EVENTS,
+  CRISIS_EVENTS,
   COMPANY_STAGES,
   STAFF_UPGRADES,
+  createInitialCompetitors,
 } from "../data/gameContent";
 
 const SAVE_KEY = "@neural_empire/save_v1";
 
 const generateId = () =>
   `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+const safeNumber = (value, fallback = 0) =>
+  typeof value === "number" && !isNaN(value) ? value : fallback;
 
 const computeStage = (reputation, totalRevenue) => {
   let current = COMPANY_STAGES[0];
@@ -72,6 +77,9 @@ const defaultGameState = () => ({
   // event log
   eventLog: [],
   activeEvents: [], // events with duration effects
+  competitors: createInitialCompetitors(),
+  activeCrisis: null,
+  lastCrisisAt: Date.now(),
   lastTick: Date.now(),
   schemaVersion: SCHEMA_VERSION,
   // staff / operations
@@ -100,6 +108,9 @@ export const useGameStore = create((set, get) => ({
       set({
         ...parsed,
         purchasedUpgrades: parsed.purchasedUpgrades || {},
+        competitors: parsed.competitors || createInitialCompetitors(),
+        activeCrisis: parsed.activeCrisis || null,
+        lastCrisisAt: parsed.lastCrisisAt || Date.now(),
         hydrated: true,
       });
     } catch (err) {
@@ -128,6 +139,9 @@ export const useGameStore = create((set, get) => ({
         activeResearch: state.activeResearch,
         eventLog: state.eventLog,
         activeEvents: state.activeEvents,
+        competitors: state.competitors,
+        activeCrisis: state.activeCrisis,
+        lastCrisisAt: state.lastCrisisAt,
         purchasedUpgrades: state.purchasedUpgrades,
         lastTick: state.lastTick,
         schemaVersion: SCHEMA_VERSION,
@@ -216,7 +230,11 @@ export const useGameStore = create((set, get) => ({
   // approve — feedback positif: kualitas naik normal, compute normal
   // reject  — feedback korektif: kualitas naik lebih besar, hallucination turun, compute ×1.5
   // skip    — lewati review: kualitas naik sedikit, compute ×0.7
-  runTrainingEpoch: (rating = "approve") => {
+  // rating: 'approve' | 'reject' | 'skip'
+  // responseType: 'good' | 'bad' — apakah output model benar atau bermasalah
+  // Penalty: approve bad response → hallucination naik
+  // Penalty: reject good response → quality turun, compute waste
+  runTrainingEpoch: (rating = "approve", responseType = "good") => {
     const state = get();
     const draft = state.currentDraft;
     if (!draft || draft.stage !== "training") {
@@ -276,6 +294,25 @@ export const useGameStore = create((set, get) => ({
     // Keep last 5 RLHF ratings for the history display
     const rlhfHistory = [rating, ...(draft.rlhfHistory || [])].slice(0, 5);
 
+    // ── RLHF Mismatch Penalty ────────────────────────────────────────────────
+    // Approve bad response: hallucination increases, small quality penalty
+    // Reject good response: quality penalty, compute still consumed
+    let mismatchPenalty = { qualityDelta: 0, hallucinationDelta: 0 };
+    if (rating === "approve" && responseType === "bad") {
+      mismatchPenalty = { qualityDelta: -0.03, hallucinationDelta: 0.06 };
+    } else if (rating === "reject" && responseType === "good") {
+      mismatchPenalty = { qualityDelta: -0.02, hallucinationDelta: 0.02 };
+    }
+
+    const finalQuality = Math.max(
+      0.02,
+      quality + mismatchPenalty.qualityDelta,
+    );
+    const finalHallucination = Math.max(
+      0.02,
+      hallucination + mismatchPenalty.hallucinationDelta,
+    );
+
     // After all epochs done → go to Turing Test, not eval
     const nextStage = progress >= 1 ? "turing" : "training";
 
@@ -285,8 +322,8 @@ export const useGameStore = create((set, get) => ({
         ...draft,
         epochs: newEpochs,
         trainingProgress: progress,
-        qualityScore: quality,
-        hallucinationRisk: hallucination,
+        qualityScore: finalQuality,
+        hallucinationRisk: finalHallucination,
         biasRisk: bias,
         computeSpent: draft.computeSpent + computeCost,
         rlhfHistory,
@@ -464,6 +501,48 @@ export const useGameStore = create((set, get) => ({
     get().persist();
   },
 
+  resolveCrisis: (choiceId) => {
+    const state = get();
+    const crisis = state.activeCrisis;
+    if (!crisis) return { ok: false, error: "Tidak ada crisis aktif." };
+    const choice = crisis.choices.find((c) => c.id === choiceId);
+    if (!choice) return { ok: false, error: "Pilihan crisis tidak valid." };
+    const effect = choice.effect || {};
+
+    let competitors = state.competitors || createInitialCompetitors();
+    if (effect.competitorBoost) {
+      competitors = competitors.map((c) => ({
+        ...c,
+        momentum: Math.max(0.5, Math.min(1.8, c.momentum + effect.competitorBoost)),
+      }));
+    }
+
+    set({
+      cash: Math.max(0, state.cash + (effect.cashDelta || 0)),
+      compute: Math.max(
+        0,
+        Math.min(state.computeCapacity, state.compute + (effect.computeDelta || 0)),
+      ),
+      reputation: Math.max(0, state.reputation + (effect.reputationDelta || 0)),
+      competitors,
+      activeCrisis: null,
+      lastCrisisAt: Date.now(),
+      eventLog: [
+        {
+          id: generateId(),
+          timestamp: Date.now(),
+          type: "crisis_resolved",
+          title: `${crisis.title} — ${choice.label}`,
+          message: choice.result,
+          tone: (effect.reputationDelta || 0) >= 0 ? "positive" : "negative",
+        },
+        ...state.eventLog,
+      ].slice(0, 50),
+    });
+    get().persist();
+    return { ok: true };
+  },
+
   // ---------- Research ----------
   startResearch: (nodeId) => {
     const state = get();
@@ -555,6 +634,10 @@ export const useGameStore = create((set, get) => ({
     let totalUsers = 0;
 
     const fx = computeUpgradeEffects(state.purchasedUpgrades);
+    let eventLog = state.eventLog;
+    let activeCrisis = state.activeCrisis;
+    let lastCrisisAt = state.lastCrisisAt || now;
+    let competitors = state.competitors || createInitialCompetitors();
 
     // Revenue multiplier: staff bonus + active timed events
     let revenueMult = 1 + fx.revenueMultiplier;
@@ -620,10 +703,59 @@ export const useGameStore = create((set, get) => ({
     cash += cashFromProducts;
     totalRevenue += revenueFromProducts;
 
+    // ── Competitors: passive growth + occasional launches ─────────────────
+    competitors = competitors.map((c) => {
+      const launchRoll = Math.random() < (c.launchChance * c.momentum * deltaSec) / 240;
+      const launchUsers = launchRoll ? Math.round(c.baseUsers * (0.6 + Math.random())) : 0;
+      const growth = safeNumber(c.users, 0) * 0.012 * c.momentum * (deltaSec / 60);
+      const users = Math.max(0, Math.round(safeNumber(c.users, 0) + growth + launchUsers));
+      const earned = users * c.revenueRate * (deltaSec / 60);
+      if (launchRoll) {
+        eventLog = [
+          {
+            id: generateId(),
+            timestamp: now,
+            type: "competitor",
+            title: `${c.name} launch produk baru`,
+            message: `${c.name} menambah ${launchUsers} users. Market share makin ketat.`,
+            tone: "neutral",
+          },
+          ...eventLog,
+        ].slice(0, 50);
+      }
+      return {
+        ...c,
+        users,
+        totalRevenue: safeNumber(c.totalRevenue, 0) + earned,
+        productsLaunched: c.productsLaunched + (launchRoll ? 1 : 0),
+        momentum: Math.max(0.7, c.momentum * 0.998),
+      };
+    });
+
+    // ── Crisis trigger (~every 2.5 min, only after first product) ───────────
+    if (!activeCrisis && liveProducts.length > 0 && now - lastCrisisAt > 90000) {
+      const crisisChance = Math.min(0.02, deltaSec / 150);
+      if (Math.random() < crisisChance) {
+        const pick = CRISIS_EVENTS[Math.floor(Math.random() * CRISIS_EVENTS.length)];
+        activeCrisis = { ...pick, createdAt: now };
+        lastCrisisAt = now;
+        eventLog = [
+          {
+            id: generateId(),
+            timestamp: now,
+            type: "crisis",
+            title: `Crisis: ${pick.title}`,
+            message: pick.description,
+            tone: "negative",
+          },
+          ...eventLog,
+        ].slice(0, 50);
+      }
+    }
+
     // ── Research completion ────────────────────────────────────────────────
     let activeResearch = state.activeResearch;
     let unlockedResearch = state.unlockedResearch;
-    let eventLog = state.eventLog;
     if (activeResearch && now >= activeResearch.completesAt) {
       unlockedResearch = [...unlockedResearch, activeResearch.nodeId];
       eventLog = [
@@ -687,6 +819,9 @@ export const useGameStore = create((set, get) => ({
       activeResearch,
       unlockedResearch,
       activeEvents,
+      competitors,
+      activeCrisis,
+      lastCrisisAt,
       eventLog,
       reputation: isNaN(reputation) ? 10 : reputation,
       lastTick: now,

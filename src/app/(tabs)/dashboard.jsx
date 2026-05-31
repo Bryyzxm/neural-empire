@@ -1,4 +1,4 @@
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -32,6 +32,9 @@ export default function Dashboard() {
   const liveProducts = useGameStore((s) => s.liveProducts);
   const eventLog = useGameStore((s) => s.eventLog);
   const currentDraft = useGameStore((s) => s.currentDraft);
+  const competitors = useGameStore((s) => s.competitors || []);
+  const activeCrisis = useGameStore((s) => s.activeCrisis);
+  const resolveCrisis = useGameStore((s) => s.resolveCrisis);
   const getStage = useGameStore((s) => s.getStage);
 
   const stage = getStage();
@@ -210,6 +213,66 @@ export default function Dashboard() {
             onPress={() => router.push("/product-flow")}
             fullWidth
           />
+        </Card>
+
+        {/* Crisis */}
+        {activeCrisis ? (
+          <Card>
+            <Pill label="CRISIS ACTIVE" variant="status" dotColor="#EF4444" />
+            <Text style={{ fontSize: 18, fontWeight: "700", color: "#111827", marginTop: 8 }}>
+              {activeCrisis.title}
+            </Text>
+            <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 4, lineHeight: 20 }}>
+              {activeCrisis.description}
+            </Text>
+            <View style={{ gap: 8, marginTop: 12 }}>
+              {activeCrisis.choices.map((choice) => (
+                <Pressable
+                  key={choice.id}
+                  onPress={() => resolveCrisis(choice.id)}
+                  style={({ pressed }) => ({
+                    padding: 12,
+                    borderRadius: 10,
+                    backgroundColor: pressed ? "#FEE2E2" : "#FFF1F2",
+                    borderWidth: 1,
+                    borderColor: "#FECACA",
+                  })}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: "#991B1B" }}>
+                    {choice.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </Card>
+        ) : null}
+
+        {/* Competitors */}
+        <Card>
+          <Text style={{ fontSize: 16, fontWeight: "600", color: "#111827", marginBottom: 2 }}>
+            Competitor Radar
+          </Text>
+          <Text style={{ fontSize: 13, color: "#6B7280", marginBottom: 12 }}>
+            Rival AI startup ikut berebut users dan market attention.
+          </Text>
+          {competitors.map((c) => {
+            const totalMarket = totalUsers + competitors.reduce((sum, x) => sum + (x.users || 0), 0);
+            const share = totalMarket > 0 ? (c.users || 0) / totalMarket : 0;
+            return (
+              <View key={c.id} style={{ marginBottom: 12 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: "#111827" }}>{c.name}</Text>
+                  <Text style={{ fontSize: 12, color: "#6B7280" }}>{formatPercent(share)}</Text>
+                </View>
+                <Text style={{ fontSize: 12, color: "#6B7280", marginBottom: 6 }}>
+                  {c.strategy} · {formatNumber(c.users || 0)} users · {c.productsLaunched} produk
+                </Text>
+                <View style={{ height: 6, borderRadius: 999, backgroundColor: "#F3F4F6", overflow: "hidden" }}>
+                  <View style={{ width: `${Math.min(100, share * 100)}%`, height: 6, backgroundColor: c.color }} />
+                </View>
+              </View>
+            );
+          })}
         </Card>
 
         {/* Event feed */}

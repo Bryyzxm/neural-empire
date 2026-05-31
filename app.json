@@ -1,6 +1,8 @@
 {
   "expo": {
-    "name": "Anything mobile app",
+    "name": "Neural Empire",
+    "slug": "neural-empire",
+    "scheme": "neuralempire",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -17,11 +19,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "permissions": [
-        "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
-      ],
-      "package": "xyz.create.CreateExpoEnvironment"
+      "permissions": [],
+      "package": "com.bryyzxm.neuralempire"
     },
     "plugins": [
       [
@@ -38,7 +37,6 @@
           "resizeMode": "contain"
         }
       ],
-      "expo-audio",
       [
         "expo-build-properties",
         {
@@ -49,7 +47,10 @@
       ],
       [
         "expo-video",
-        { "supportsBackgroundPlayback": true, "supportsPictureInPicture": true }
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
+        }
       ],
       "expo-font",
       "expo-secure-store",
@@ -64,7 +65,11 @@
     },
     "extra": {
       "router": {
-        "origin": false
+        "origin": false,
+        "sitemap": false
+      },
+      "eas": {
+        "projectId": "5e4e53e3-bafa-4c32-8737-362396e06841"
       }
     }
   }

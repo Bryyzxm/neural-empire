@@ -407,7 +407,7 @@ function TrainingStage() {
 
   const handleRate = (rating) => {
     setLastFeedback(rating);
-    const res = runEpoch(rating);
+    const res = runEpoch(rating, responseType);
     if (!res.ok) {
       setLastFeedback(null);
       Alert.alert("Tidak bisa training", res.error);
@@ -644,26 +644,6 @@ function TrainingStage() {
                 {responseText}
               </Text>
             </View>
-
-            {/* Why bad hint (only when bad response shown) */}
-            {responseType === "bad" ? (
-              <View
-                style={{
-                  marginTop: 10,
-                  padding: 10,
-                  backgroundColor: "#FFFBEB",
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: "#FDE68A",
-                }}
-              >
-                <Text
-                  style={{ fontSize: 12, color: "#92400E", lineHeight: 18 }}
-                >
-                  💡 Hint: {scenario.why_bad}
-                </Text>
-              </View>
-            ) : null}
           </Card>
 
           {/* Rating buttons */}
@@ -969,7 +949,7 @@ function TuringTestStage() {
               ATURAN MAIN
             </Text>
             <Text style={{ fontSize: 13, color: "#4B5563", lineHeight: 20 }}>
-              Kamu akan melihat 4 respons percakapan — 2 ditulis oleh AI, 2
+              Kamu akan melihat 6 respons percakapan — 3 ditulis oleh AI, 3
               ditulis oleh manusia. Identifikasi mana yang mana. Skor kamu
               menentukan seberapa "lolos" model AI-mu.
             </Text>

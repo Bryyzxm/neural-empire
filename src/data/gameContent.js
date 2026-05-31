@@ -1,7 +1,15 @@
 // Static game content / balancing data
 // Definitions for products, research nodes, events, etc.
 //
-// ── BALANCING CHANGELOG v5 ──────────────────────────────────────────────────
+// ── BALANCING CHANGELOG v6 ──────────────────────────────────────────────────
+// v5 → v6 (2026-05-29 rebalance):
+//   [BALANCE]  Starting cash 5000→1500, compute 8→5, capacity 16→10.
+//   [BALANCE]  Basic chatbot: dataCost 150→300, computeCost 5→10,
+//              epochs 3→4, revenue 0.40→0.25, lifespan 300→180s.
+//   [BALANCE]  Scraped data: quality 0.40→0.30, hallucination 0.50→0.65,
+//              bias 0.60→0.75. Early game forces strategic data choices.
+//   [SCHEMA]   Bumped ke 6 — clears pre-rebalance saves.
+// ────────────────────────────────────────────────────────────────────────────
 // v4 → v5 (2026-05-25 feature pass):
 //   [FEATURE]  RLHF training — runTrainingEpoch menerima rating
 //              'approve'|'reject'|'skip' dengan efek berbeda pada kualitas.
@@ -9,7 +17,7 @@
 //   [SCHEMA]   Bumped ke 5 — clears saves tanpa field turingScore.
 // ────────────────────────────────────────────────────────────────────────────
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export const PRODUCT_TYPES = {
   basic_chatbot: {
@@ -17,11 +25,11 @@ export const PRODUCT_TYPES = {
     name: "Basic Chatbot",
     category: "NLP",
     description: "Asisten teks sederhana untuk pertanyaan umum.",
-    baseDataCost: 150,
-    baseComputeCost: 5,
-    minTrainingEpochs: 3,
-    baseRevenuePerUser: 0.4, // $/user/min
-    revenueLifespanSec: 300, // 5 menit real-time
+    baseDataCost: 300,
+    baseComputeCost: 10,
+    minTrainingEpochs: 4,
+    baseRevenuePerUser: 0.25,
+    revenueLifespanSec: 180, // 3 menit — tight early game
     unlockRequirement: null,
     icon: "MessageCircle",
   },
@@ -84,10 +92,10 @@ export const DATA_QUALITY_TIERS = {
     id: "scraped",
     name: "Scraped Web Data",
     costMultiplier: 0.5,
-    qualityScore: 0.4,
-    biasRisk: 0.6,
-    hallucinationRisk: 0.5,
-    description: "Murah dan banyak. Risiko bias tinggi.",
+    qualityScore: 0.30,
+    biasRisk: 0.75,
+    hallucinationRisk: 0.65,
+    description: "Murah tapi berisiko. Kualitas rendah, halusinasi tinggi.",
   },
   curated: {
     id: "curated",
@@ -226,10 +234,130 @@ export const COMPANY_STAGES = [
   { id: "empire", name: "AI Empire", minReputation: 200, minRevenue: 150000 }, // was 250000
 ];
 
+export const COMPETITORS = [
+  {
+    id: "omni_mind",
+    name: "OmniMind Labs",
+    strategy: "Growth agresif",
+    color: "#7C3AED",
+    launchChance: 0.42,
+    baseUsers: 420,
+    revenueRate: 0.18,
+  },
+  {
+    id: "safe_synth",
+    name: "SafeSynth AI",
+    strategy: "Safety-first",
+    color: "#059669",
+    launchChance: 0.30,
+    baseUsers: 280,
+    revenueRate: 0.14,
+  },
+  {
+    id: "cheap_gpt",
+    name: "CheapGPT",
+    strategy: "Harga murah",
+    color: "#D97706",
+    launchChance: 0.36,
+    baseUsers: 360,
+    revenueRate: 0.10,
+  },
+];
+
+export const CRISIS_EVENTS = [
+  {
+    id: "hallucination_scandal",
+    title: "Skandal Halusinasi",
+    description:
+      "Model kamu memberi jawaban ngawur ke pelanggan enterprise. Media mulai mencium kasus ini.",
+    choices: [
+      {
+        id: "apologize",
+        label: "Minta maaf publik",
+        effect: { reputationDelta: -4, cashDelta: -250 },
+        result: "Kamu transparan. Biaya PR naik, tapi krisis terkendali.",
+      },
+      {
+        id: "patch",
+        label: "Hotfix model",
+        effect: { cashDelta: -500, computeDelta: -2, reputationDelta: 3 },
+        result: "Tim ship hotfix cepat. Trust naik, resource terkuras.",
+      },
+      {
+        id: "deny",
+        label: "Bantah keras",
+        effect: { reputationDelta: -12, competitorBoost: 0.08 },
+        result: "Publik tidak percaya. Kompetitor manfaatkan momentum.",
+      },
+    ],
+  },
+  {
+    id: "gpu_shortage",
+    title: "GPU Shortage",
+    description:
+      "Harga GPU melonjak. Training produk baru jadi lebih mahal beberapa waktu ke depan.",
+    choices: [
+      {
+        id: "rent",
+        label: "Sewa GPU mahal",
+        effect: { cashDelta: -650, computeDelta: 6 },
+        result: "Compute aman, cash terbakar.",
+      },
+      {
+        id: "optimize",
+        label: "Optimasi infra",
+        effect: { cashDelta: -300, reputationDelta: 2 },
+        result: "Tim infra menemukan efisiensi. Investor suka disiplin burn-rate.",
+      },
+      {
+        id: "wait",
+        label: "Tunggu pasar stabil",
+        effect: { reputationDelta: -3, competitorBoost: 0.05 },
+        result: "Kamu hemat cash, tapi kompetitor bergerak duluan.",
+      },
+    ],
+  },
+  {
+    id: "regulator_audit",
+    title: "Audit Regulator AI",
+    description:
+      "Regulator meminta bukti mitigasi bias dan keamanan model sebelum produk makin besar.",
+    choices: [
+      {
+        id: "comply",
+        label: "Full compliance",
+        effect: { cashDelta: -700, reputationDelta: 8 },
+        result: "Mahal, tapi brand kamu dianggap paling aman.",
+      },
+      {
+        id: "minimal",
+        label: "Dokumen minimal",
+        effect: { cashDelta: -250, reputationDelta: -2 },
+        result: "Lolos sementara, tapi trust turun tipis.",
+      },
+      {
+        id: "lobby",
+        label: "Lobby asosiasi",
+        effect: { cashDelta: -450, reputationDelta: 3, competitorBoost: -0.03 },
+        result: "Aturan melunak. Semua pemain tertahan sedikit.",
+      },
+    ],
+  },
+];
+
+export const createInitialCompetitors = () =>
+  COMPETITORS.map((c, i) => ({
+    ...c,
+    users: c.baseUsers + i * 120,
+    totalRevenue: 0,
+    productsLaunched: 1,
+    momentum: 1,
+  }));
+
 export const INITIAL_STATE = {
-  cash: 5000,
-  compute: 8, // was 10 — scarcer early, refill feels necessary
-  computeCapacity: 16, // was 20 — DevOps hire (+10) is more impactful
+  cash: 1500,
+  compute: 5,
+  computeCapacity: 10,
   reputation: 10,
   totalRevenue: 0,
   totalUsers: 0,

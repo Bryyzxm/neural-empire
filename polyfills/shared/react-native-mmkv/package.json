@@ -1,0 +1,7 @@
+{
+  "name": "react-native-mmkv",
+  "version": "3.3.0",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "MIT"
+}

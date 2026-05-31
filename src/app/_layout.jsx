@@ -1,4 +1,3 @@
-import { useAuth } from "@/utils/auth/useAuth";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
@@ -7,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useGameStore } from "@/store/gameStore";
 import { useTooltipStore } from "@/store/tooltipStore";
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,27 +20,22 @@ const queryClient = new QueryClient({
 });
 
 export default function RootLayout() {
-  const { initiate, isReady } = useAuth();
   const hydrate = useGameStore((s) => s.hydrate);
   const hydrated = useGameStore((s) => s.hydrated);
   const loadTooltips = useTooltipStore((s) => s.load);
 
   useEffect(() => {
-    initiate();
-  }, [initiate]);
-
-  useEffect(() => {
-    hydrate();
-    loadTooltips(); // load seen-tooltips from AsyncStorage
+    Promise.resolve(hydrate()).catch(() => {});
+    Promise.resolve(loadTooltips()).catch(() => {});
   }, [hydrate, loadTooltips]);
 
   useEffect(() => {
-    if (isReady && hydrated) {
-      SplashScreen.hideAsync();
+    if (hydrated) {
+      SplashScreen.hideAsync().catch(() => {});
     }
-  }, [isReady, hydrated]);
+  }, [hydrated]);
 
-  if (!isReady || !hydrated) {
+  if (!hydrated) {
     return null;
   }
 
