@@ -32,6 +32,7 @@ export default function Dashboard() {
   const totalUsers = useGameStore((s) => s.totalUsers);
   const companyName = useGameStore((s) => s.companyName);
   const liveProducts = useGameStore((s) => s.liveProducts);
+  const salesHistory = useGameStore((s) => s.salesHistory || []);
   const eventLog = useGameStore((s) => s.eventLog);
   const currentDraft = useGameStore((s) => s.currentDraft);
   const competitors = useGameStore((s) => s.competitors || []);
@@ -102,6 +103,12 @@ export default function Dashboard() {
             value={formatCurrency(totalRevenue)}
           />
         </View>
+
+        <SalesInsightCard
+          history={salesHistory}
+          totalRevenue={totalRevenue}
+          liveProducts={liveProducts}
+        />
 
         {/* Health rings */}
         <Card>
@@ -356,6 +363,52 @@ export default function Dashboard() {
         </Card>
       </ScrollView>
     </View>
+  );
+}
+
+function SalesInsightCard({ history, totalRevenue, liveProducts }) {
+  const points = [...history].reverse().slice(-12);
+  const maxRevenue = Math.max(1, ...points.map((p) => p.revenue || 0));
+  const activeRevenuePerMin = liveProducts.reduce((sum, p) => {
+    const active = !p.revenueExpiresAt || Date.now() < p.revenueExpiresAt;
+    return sum + (active ? (p.revenuePerTick || 0) * 60 : 0);
+  }, 0);
+
+  return (
+    <Card>
+      <Text style={{ fontSize: 16, fontWeight: "600", color: "#111827", marginBottom: 2 }}>
+        Sales Insight
+      </Text>
+      <Text style={{ fontSize: 13, color: "#6B7280", marginBottom: 12 }}>
+        Real revenue samples from active product sales.
+      </Text>
+      <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 5, height: 86 }}>
+        {points.length === 0 ? (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontSize: 13, color: "#9CA3AF" }}>No sales yet — launch a product to start charting.</Text>
+          </View>
+        ) : (
+          points.map((p, idx) => {
+            const height = Math.max(6, ((p.revenue || 0) / maxRevenue) * 78);
+            return (
+              <View key={`${p.timestamp}-${idx}`} style={{ flex: 1, justifyContent: "flex-end" }}>
+                <View
+                  style={{
+                    height,
+                    borderRadius: 6,
+                    backgroundColor: idx === points.length - 1 ? "#22C55E" : "#A7F3D0",
+                  }}
+                />
+              </View>
+            );
+          })
+        )}
+      </View>
+      <View style={{ marginTop: 12 }}>
+        <StatRow label="Total sales" value={formatCurrency(totalRevenue)} />
+        <StatRow label="Current sales/min" value={formatCurrency(activeRevenuePerMin)} />
+      </View>
+    </Card>
   );
 }
 

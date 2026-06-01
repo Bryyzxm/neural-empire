@@ -10,6 +10,12 @@
 //              bias 0.60→0.75. Early game forces strategic data choices.
 //   [SCHEMA]   Bumped ke 6 — clears pre-rebalance saves.
 // ────────────────────────────────────────────────────────────────────────────
+// v6 → v7 (2026-06-01 early-game economy fix):
+//   [BALANCE]  Starting cash 1500→5000.
+//   [BALANCE]  Product revenue/lifespan raised so first launches generate clear profit.
+//   [FEATURE]  Sales history added for real dashboard chart.
+//   [SCHEMA]   Bumped ke 7 — clears old low-cash/revenue saves.
+// ────────────────────────────────────────────────────────────────────────────
 // v4 → v5 (2026-05-25 feature pass):
 //   [FEATURE]  RLHF training — runTrainingEpoch menerima rating
 //              'approve'|'reject'|'skip' dengan efek berbeda pada kualitas.
@@ -21,7 +27,7 @@
 //   (e.g. "product.basic_chatbot.name") that resolves via t() at render time.
 //   Internal identifiers (id, category, icon, costMultiplier) stay literal.
 
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 export const PRODUCT_TYPES = {
   basic_chatbot: {
@@ -32,8 +38,8 @@ export const PRODUCT_TYPES = {
     baseDataCost: 300,
     baseComputeCost: 10,
     minTrainingEpochs: 4,
-    baseRevenuePerUser: 0.25,
-    revenueLifespanSec: 180, // 3 menit — tight early game
+    baseRevenuePerUser: 0.75,
+    revenueLifespanSec: 240, // 4 menit — profitable early loop
     unlockRequirement: null,
     icon: "MessageCircle",
   },
@@ -45,8 +51,8 @@ export const PRODUCT_TYPES = {
     baseDataCost: 650,
     baseComputeCost: 15,
     minTrainingEpochs: 5,
-    baseRevenuePerUser: 1.2,
-    revenueLifespanSec: 480, // 8 menit
+    baseRevenuePerUser: 1.6,
+    revenueLifespanSec: 540, // 8 menit
     unlockRequirement: "research_nlp_1",
     icon: "Bot",
   },
@@ -58,8 +64,8 @@ export const PRODUCT_TYPES = {
     baseDataCost: 600,
     baseComputeCost: 12,
     minTrainingEpochs: 4,
-    baseRevenuePerUser: 0.9,
-    revenueLifespanSec: 420, // 7 menit
+    baseRevenuePerUser: 1.3,
+    revenueLifespanSec: 480, // 7 menit
     unlockRequirement: "research_vision_1",
     icon: "Image",
   },
@@ -71,8 +77,8 @@ export const PRODUCT_TYPES = {
     baseDataCost: 2500,
     baseComputeCost: 32,
     minTrainingEpochs: 8,
-    baseRevenuePerUser: 3.0,
-    revenueLifespanSec: 600, // 10 menit — endgame worth the investment
+    baseRevenuePerUser: 3.8,
+    revenueLifespanSec: 720, // 10 menit — endgame worth the investment
     unlockRequirement: "research_gen_1",
     icon: "Sparkles",
   },
@@ -84,8 +90,8 @@ export const PRODUCT_TYPES = {
     baseDataCost: 1500,
     baseComputeCost: 25,
     minTrainingEpochs: 6,
-    baseRevenuePerUser: 2.0,
-    revenueLifespanSec: 540, // 9 menit
+    baseRevenuePerUser: 2.6,
+    revenueLifespanSec: 660, // 9 menit
     unlockRequirement: "research_nlp_2",
     icon: "Code",
   },
@@ -353,7 +359,7 @@ export const createInitialCompetitors = () =>
   }));
 
 export const INITIAL_STATE = {
-  cash: 1500,
+  cash: 5000,
   compute: 5,
   computeCapacity: 10,
   reputation: 10,

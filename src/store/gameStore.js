@@ -79,6 +79,7 @@ const defaultGameState = () => ({
   // event log
   eventLog: [],
   activeEvents: [], // events with duration effects
+  salesHistory: [], // real revenue samples for dashboard chart
   competitors: createInitialCompetitors(),
   activeCrisis: null,
   lastCrisisAt: Date.now(),
@@ -111,6 +112,7 @@ export const useGameStore = create((set, get) => ({
         ...parsed,
         purchasedUpgrades: parsed.purchasedUpgrades || {},
         competitors: parsed.competitors || createInitialCompetitors(),
+        salesHistory: parsed.salesHistory || [],
         activeCrisis: parsed.activeCrisis || null,
         lastCrisisAt: parsed.lastCrisisAt || Date.now(),
         language: parsed.language === "en" ? "en" : "id",
@@ -143,6 +145,7 @@ export const useGameStore = create((set, get) => ({
         activeResearch: state.activeResearch,
         eventLog: state.eventLog,
         activeEvents: state.activeEvents,
+        salesHistory: state.salesHistory,
         competitors: state.competitors,
         activeCrisis: state.activeCrisis,
         lastCrisisAt: state.lastCrisisAt,
@@ -432,6 +435,7 @@ export const useGameStore = create((set, get) => ({
       // revenuePerTick = $/second. Formula: users × $/user/min ÷ 60
       revenuePerTick: (initialUsers * productType.baseRevenuePerUser) / 60,
       totalRevenue: 0,
+      salesHistory: [{ timestamp: Date.now(), revenue: 0, users: initialUsers }],
       churnRate, // fraction of users lost per real-world minute
       // revenue window — product stops earning after this timestamp
       revenueLifespanSec: productType.revenueLifespanSec,
@@ -701,10 +705,20 @@ export const useGameStore = create((set, get) => ({
         cashFromProducts += earned;
         revenueFromProducts += earned;
 
+        const totalProductRevenue = (isNaN(p.totalRevenue) ? 0 : p.totalRevenue) + earned;
+        const lastSample = (p.salesHistory || [])[0];
+        const shouldSample = !lastSample || now - lastSample.timestamp >= 15000 || earned > 0;
+
         return {
           ...p,
           users: newUsers,
-          totalRevenue: (isNaN(p.totalRevenue) ? 0 : p.totalRevenue) + earned,
+          totalRevenue: totalProductRevenue,
+          salesHistory: shouldSample
+            ? [
+                { timestamp: now, revenue: totalProductRevenue, users: newUsers },
+                ...(p.salesHistory || []),
+              ].slice(0, 20)
+            : p.salesHistory || [],
           // Scale revenuePerTick proportionally with user drop — NOT × deltaSec
           revenuePerTick:
             safeUsers > 0 ? safeRpt * (newUsers / safeUsers) : safeRpt,
@@ -839,12 +853,20 @@ export const useGameStore = create((set, get) => ({
       }
     }
 
+    const salesHistory = revenueFromProducts > 0
+      ? [
+          { timestamp: now, revenue: totalRevenue, delta: revenueFromProducts, users: totalUsers },
+          ...(state.salesHistory || []),
+        ].slice(0, 24)
+      : state.salesHistory || [];
+
     // Single set — no early returns that skip product/revenue updates
     set({
       cash: Math.max(0, isNaN(cash) ? 0 : cash),
       totalRevenue: isNaN(totalRevenue) ? 0 : Math.max(0, totalRevenue),
       totalUsers,
       liveProducts,
+      salesHistory,
       activeResearch,
       unlockedResearch,
       activeEvents,
