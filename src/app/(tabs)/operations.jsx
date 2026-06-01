@@ -15,6 +15,7 @@ import {
   Lock,
 } from "lucide-react-native";
 import { useGameStore, computeUpgradeEffects } from "@/store/gameStore";
+import { useT } from "@/i18n/useT";
 import { STAFF_UPGRADES, STAFF_CATEGORIES } from "@/data/gameContent";
 import Card from "@/components/ui/Card";
 import Pill from "@/components/ui/Pill";
@@ -32,62 +33,65 @@ const ICON_MAP = {
   Server,
 };
 
-// Effect display config: key → { label, format, color }
-const EFFECT_META = {
-  computeEfficiency: {
-    label: "Efisiensi compute",
-    format: (v) => `-${formatPercent(v)} biaya`,
-    color: "#2563EB",
-  },
-  qualityBonus: {
-    label: "Bonus kualitas",
-    format: (v) => `+${formatPercent(v)}`,
-    color: "#22C55E",
-  },
-  dataQualityBonus: {
-    label: "Bonus data",
-    format: (v) => `+${formatPercent(v)}`,
-    color: "#22C55E",
-  },
-  biasReduction: {
-    label: "Kurangi bias",
-    format: (v) => `-${formatPercent(v)}`,
-    color: "#22C55E",
-  },
-  hallucinationReduction: {
-    label: "Kurangi halusinasi",
-    format: (v) => `-${formatPercent(v)}`,
-    color: "#22C55E",
-  },
-  userMultiplier: {
-    label: "Pengguna awal",
-    format: (v) => `+${formatPercent(v)}`,
-    color: "#EA580C",
-  },
-  churnReduction: {
-    label: "Kurangi churn",
-    format: (v) => `-${(v * 1000).toFixed(1)}‰`,
-    color: "#22C55E",
-  },
-  revenueMultiplier: {
-    label: "Bonus revenue",
-    format: (v) => `+${formatPercent(v)}`,
-    color: "#22C55E",
-  },
-  reputationTickBonus: {
-    label: "Reputasi/menit",
-    format: (v) => `+${(v).toFixed(1)} rep`,
-    color: "#8B5CF6",
-  },
-  computeCapacityBonus: {
-    label: "Kapasitas server",
-    format: (v) => `+${v}`,
-    color: "#2563EB",
-  },
-};
+// Effect display config: key → { labelKey, formatKey, color, format(v) }
+function makeEffectMeta(t) {
+  return {
+    computeEfficiency: {
+      label: t("effect.compute_efficiency"),
+      format: (v) => t("effect.compute_efficiency_fmt", { pct: formatPercent(v) }),
+      color: "#2563EB",
+    },
+    qualityBonus: {
+      label: t("effect.quality_bonus"),
+      format: (v) => t("effect.pct_format", { pct: formatPercent(v) }),
+      color: "#22C55E",
+    },
+    dataQualityBonus: {
+      label: t("effect.data_quality_bonus"),
+      format: (v) => t("effect.pct_format", { pct: formatPercent(v) }),
+      color: "#22C55E",
+    },
+    biasReduction: {
+      label: t("effect.bias_reduction"),
+      format: (v) => t("effect.pct_minus", { pct: formatPercent(v) }),
+      color: "#22C55E",
+    },
+    hallucinationReduction: {
+      label: t("effect.hallucination_reduction"),
+      format: (v) => t("effect.pct_minus", { pct: formatPercent(v) }),
+      color: "#22C55E",
+    },
+    userMultiplier: {
+      label: t("effect.user_multiplier"),
+      format: (v) => t("effect.pct_format", { pct: formatPercent(v) }),
+      color: "#EA580C",
+    },
+    churnReduction: {
+      label: t("effect.churn_reduction"),
+      format: (v) => t("effect.churn_format", { n: (v * 1000).toFixed(1) }),
+      color: "#22C55E",
+    },
+    revenueMultiplier: {
+      label: t("effect.revenue_multiplier"),
+      format: (v) => t("effect.pct_format", { pct: formatPercent(v) }),
+      color: "#22C55E",
+    },
+    reputationTickBonus: {
+      label: t("effect.reputation_tick_bonus"),
+      format: (v) => t("effect.reputation_tick_bonus_fmt", { n: v.toFixed(1) }),
+      color: "#8B5CF6",
+    },
+    computeCapacityBonus: {
+      label: t("effect.compute_capacity_bonus"),
+      format: (v) => `+${v}`,
+      color: "#2563EB",
+    },
+  };
+}
 
 export default function OperationsTab() {
   const insets = useSafeAreaInsets();
+  const t = useT();
   const [activeCategory, setActiveCategory] = useState("engineering");
   const cash = useGameStore((s) => s.cash);
   const purchasedUpgrades = useGameStore((s) => s.purchasedUpgrades);
@@ -108,15 +112,15 @@ export default function OperationsTab() {
     const nextTier = def?.tiers[currentLevel];
     if (!nextTier) return;
     Alert.alert(
-      `Rekrut ${nextTier.label}?`,
-      `Biaya: ${formatCurrency(nextTier.cost)}\nEfek langsung aktif setelah rekrut.`,
+      t("operations.alert_hire_title", { label: t(nextTier.label) }),
+      t("operations.alert_hire_body", { cost: formatCurrency(nextTier.cost) }),
       [
-        { text: "Batal", style: "cancel" },
+        { text: t("operations.alert_hire_cancel"), style: "cancel" },
         {
-          text: "Rekrut",
+          text: t("operations.alert_hire_confirm"),
           onPress: () => {
             const res = purchaseUpgrade(upgradeId);
-            if (!res.ok) Alert.alert("Gagal", res.error);
+            if (!res.ok) Alert.alert(t("operations.alert_failed_title"), res.error);
           },
         },
       ],
@@ -144,7 +148,7 @@ export default function OperationsTab() {
           }}
         >
           <View>
-            <Pill label="Staff & Ops" variant="soft" />
+            <Pill label={t("operations.header_pill")} variant="soft" />
             <Text
               style={{
                 fontSize: 26,
@@ -154,10 +158,10 @@ export default function OperationsTab() {
                 marginTop: 8,
               }}
             >
-              Operasional
+              {t("operations.header_title")}
             </Text>
             <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
-              {totalHired} staf direkrut · efek kumulatif aktif
+              {t("operations.header_subtitle", { count: totalHired })}
             </Text>
           </View>
         </View>
@@ -200,7 +204,7 @@ export default function OperationsTab() {
                     color: isActive ? "#FFFFFF" : "#374151",
                   }}
                 >
-                  {cat.label}
+                  {t(cat.label)}
                 </Text>
               </Pressable>
             );
@@ -217,7 +221,7 @@ export default function OperationsTab() {
         }}
       >
         {/* Active effects summary */}
-        <ActiveEffectsSummary fx={fx} />
+        <ActiveEffectsSummary fx={fx} t={t} />
 
         {/* Upgrade cards for active category */}
         {categoryUpgrades.map((u) => (
@@ -227,6 +231,7 @@ export default function OperationsTab() {
             currentLevel={purchasedUpgrades[u.id] || 0}
             cash={cash}
             onPurchase={() => handlePurchase(u.id)}
+            t={t}
           />
         ))}
       </ScrollView>
@@ -235,16 +240,17 @@ export default function OperationsTab() {
 }
 
 // ── Active Effects Summary ──────────────────────────────────────────────────
-function ActiveEffectsSummary({ fx }) {
+function ActiveEffectsSummary({ fx, t }) {
   const activeKeys = Object.entries(fx).filter(([, v]) => v > 0);
+  const EFFECT_META = makeEffectMeta(t);
   if (activeKeys.length === 0) {
     return (
       <Card>
         <Text style={{ fontSize: 15, fontWeight: "600", color: "#111827" }}>
-          Efek Aktif
+          {t("operations.section_title")}
         </Text>
         <Text style={{ fontSize: 13, color: "#9CA3AF", marginTop: 6 }}>
-          Belum ada staf direkrut. Rekrut anggota tim untuk mengaktifkan bonus.
+          {t("operations.section_empty")}
         </Text>
       </Card>
     );
@@ -252,7 +258,7 @@ function ActiveEffectsSummary({ fx }) {
   return (
     <Card>
       <Text style={{ fontSize: 15, fontWeight: "600", color: "#111827" }}>
-        Efek Aktif
+        {t("operations.section_title")}
       </Text>
       <Text
         style={{
@@ -262,7 +268,7 @@ function ActiveEffectsSummary({ fx }) {
           marginBottom: 10,
         }}
       >
-        Semua bonus dari staf yang sudah direkrut.
+        {t("operations.section_subtitle")}
       </Text>
       {activeKeys.map(([key, val]) => {
         const meta = EFFECT_META[key];
@@ -281,7 +287,7 @@ function ActiveEffectsSummary({ fx }) {
 }
 
 // ── Single Upgrade Card ─────────────────────────────────────────────────────
-function UpgradeCard({ upgrade, currentLevel, cash, onPurchase }) {
+function UpgradeCard({ upgrade, currentLevel, cash, onPurchase, t }) {
   const isMaxed = currentLevel >= upgrade.maxLevel;
   const nextTier = upgrade.tiers[currentLevel];
   const canAfford = nextTier && cash >= nextTier.cost;
@@ -307,10 +313,10 @@ function UpgradeCard({ upgrade, currentLevel, cash, onPurchase }) {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 15, fontWeight: "600", color: "#111827" }}>
-            {upgrade.name}
+            {t(upgrade.name)}
           </Text>
           <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
-            {upgrade.description}
+            {t(upgrade.description)}
           </Text>
         </View>
         {isMaxed ? (
@@ -332,7 +338,7 @@ function UpgradeCard({ upgrade, currentLevel, cash, onPurchase }) {
           alignItems: "center",
         }}
       >
-        {upgrade.tiers.map((t, i) => {
+        {upgrade.tiers.map((tier, i) => {
           const done = i < currentLevel;
           const active = i === currentLevel;
           return (
@@ -361,7 +367,7 @@ function UpgradeCard({ upgrade, currentLevel, cash, onPurchase }) {
                   fontWeight: active ? "600" : "400",
                 }}
               >
-                {t.label}
+                {t(tier.label)}
               </Text>
               {i < upgrade.tiers.length - 1 ? (
                 <View
@@ -393,20 +399,9 @@ function UpgradeCard({ upgrade, currentLevel, cash, onPurchase }) {
               letterSpacing: 0.4,
             }}
           >
-            Bonus tier berikutnya
+            {t("operations.next_tier_label")}
           </Text>
-          {Object.entries(nextTier.effect).map(([key, val]) => {
-            const meta = EFFECT_META[key];
-            if (!meta) return null;
-            return (
-              <StatRow
-                key={key}
-                label={meta.label}
-                value={meta.format(val)}
-                valueColor={meta.color}
-              />
-            );
-          })}
+          <NextTierEffects tier={nextTier} t={t} />
         </View>
       ) : isMaxed ? (
         <View
@@ -418,7 +413,7 @@ function UpgradeCard({ upgrade, currentLevel, cash, onPurchase }) {
           }}
         >
           <Text style={{ fontSize: 13, color: "#22C55E", fontWeight: "500" }}>
-            ✓ Semua tier telah direkrut.
+            {t("operations.all_maxed")}
           </Text>
         </View>
       ) : null}
@@ -428,8 +423,13 @@ function UpgradeCard({ upgrade, currentLevel, cash, onPurchase }) {
         <Button
           label={
             canAfford
-              ? `Rekrut ${nextTier?.label} — ${formatCurrency(nextTier?.cost)}`
-              : `Butuh ${formatCurrency(nextTier?.cost)} — cash tidak cukup`
+              ? t("operations.btn_hire", {
+                  label: t(nextTier?.label),
+                  cost: formatCurrency(nextTier?.cost),
+                })
+              : t("operations.btn_cannot_afford", {
+                  cost: formatCurrency(nextTier?.cost),
+                })
           }
           onPress={onPurchase}
           disabled={!canAfford}
@@ -439,4 +439,20 @@ function UpgradeCard({ upgrade, currentLevel, cash, onPurchase }) {
       ) : null}
     </Card>
   );
+}
+
+function NextTierEffects({ tier, t }) {
+  const EFFECT_META = makeEffectMeta(t);
+  return Object.entries(tier.effect).map(([key, val]) => {
+    const meta = EFFECT_META[key];
+    if (!meta) return null;
+    return (
+      <StatRow
+        key={key}
+        label={meta.label}
+        value={meta.format(val)}
+        valueColor={meta.color}
+      />
+    );
+  });
 }

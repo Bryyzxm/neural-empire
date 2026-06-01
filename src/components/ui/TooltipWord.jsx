@@ -25,6 +25,7 @@ import {
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTooltipStore } from "@/store/tooltipStore";
+import { useT } from "@/i18n/useT";
 import { TOOLTIPS, TOOLTIP_CATEGORIES } from "@/data/tooltipContent";
 
 const ICON_MAP = {
@@ -105,6 +106,7 @@ export default function TooltipWord({ termId, children, style }) {
 // ── Bottom-sheet style Modal ────────────────────────────────────────────────
 function TooltipModal({ visible, tooltip, category, onClose }) {
   const insets = useSafeAreaInsets();
+  const t = useT();
   if (!tooltip || !category) return null;
 
   const IconComp = ICON_MAP[tooltip.icon] || BookOpen;
@@ -212,7 +214,7 @@ function TooltipModal({ visible, tooltip, category, onClose }) {
                             color: category.color,
                           }}
                         >
-                          {category.label}
+                          {t(category.label)}
                         </Text>
                       </View>
                       <Text
@@ -223,7 +225,7 @@ function TooltipModal({ visible, tooltip, category, onClose }) {
                           letterSpacing: -0.3,
                         }}
                       >
-                        {tooltip.term}
+                        {t(tooltip.term)}
                       </Text>
                     </View>
                   </View>
@@ -260,7 +262,7 @@ function TooltipModal({ visible, tooltip, category, onClose }) {
                       letterSpacing: 0.6,
                     }}
                   >
-                    Definisi
+                    {t("tooltip.section.definition")}
                   </Text>
                   <Text
                     style={{
@@ -269,7 +271,7 @@ function TooltipModal({ visible, tooltip, category, onClose }) {
                       color: "#374151",
                     }}
                   >
-                    {tooltip.definition}
+                    {t(tooltip.definition)}
                   </Text>
                 </View>
 
@@ -293,7 +295,7 @@ function TooltipModal({ visible, tooltip, category, onClose }) {
                       letterSpacing: 0.6,
                     }}
                   >
-                    Analogi
+                    {t("tooltip.section.analogy")}
                   </Text>
                   <Text
                     style={{
@@ -303,7 +305,7 @@ function TooltipModal({ visible, tooltip, category, onClose }) {
                       fontStyle: "italic",
                     }}
                   >
-                    "{tooltip.analogy}"
+                    "{t(tooltip.analogy)}"
                   </Text>
                 </View>
 
@@ -319,7 +321,7 @@ function TooltipModal({ visible, tooltip, category, onClose }) {
                         letterSpacing: 0.6,
                       }}
                     >
-                      Istilah terkait
+                      {t("tooltip.section.related")}
                     </Text>
                     <View
                       style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}
@@ -347,7 +349,7 @@ function TooltipModal({ visible, tooltip, category, onClose }) {
                                 fontWeight: "500",
                               }}
                             >
-                              {rel.term}
+                              {t(rel.term)}
                             </Text>
                           </View>
                         );
@@ -376,7 +378,7 @@ function TooltipModal({ visible, tooltip, category, onClose }) {
                       fontSize: 14,
                     }}
                   >
-                    Mengerti
+                    {t("tooltip.got_it")}
                   </Text>
                 </Pressable>
               </ScrollView>

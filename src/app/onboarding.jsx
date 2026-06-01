@@ -1,51 +1,130 @@
 import { useState } from "react";
-import { View, Text, ScrollView, TextInput, Platform } from "react-native";
+import { View, Text, ScrollView, TextInput, Platform, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { Sparkles, Database, Cpu, TrendingUp } from "lucide-react-native";
+import { Sparkles, Database, Cpu, TrendingUp, Check } from "lucide-react-native";
 import { useGameStore } from "@/store/gameStore";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Pill from "@/components/ui/Pill";
 
-const STEPS = [
-  {
-    icon: Sparkles,
-    title: "Selamat datang, Founder",
-    body: "Anda baru saja mendirikan startup AI di garage. Tujuan Anda: membangun produk AI, mendapatkan pengguna, dan tumbuh menjadi perusahaan global.",
+// ── Bilingual strings for the onboarding flow only ──────────────────────────
+// Game content (dashboard, products, events) stays Indonesian for now.
+// Add new keys here and the consumer below — no library, ~1KB bundle cost.
+const STRINGS = {
+  id: {
+    pill: "MVP 0.1.0",
+    langTitle: "Pilih bahasa",
+    langSubtitle: "Pilih bahasa untuk tutorial onboarding.",
+    langId: "Bahasa Indonesia",
+    langEn: "English",
+    steps: [
+      {
+        icon: Sparkles,
+        title: "Selamat datang, Founder",
+        body: "Anda baru saja mendirikan startup AI di garage. Tujuan Anda: membangun produk AI, mendapatkan pengguna, dan tumbuh menjadi perusahaan global.",
+      },
+      {
+        icon: Database,
+        title: "Pilih data dengan bijak",
+        body: "Data adalah bahan bakar. Data murah cepat dapat, tapi membawa risiko bias dan halusinasi. Data premium mahal, tapi reputasi tetap aman.",
+      },
+      {
+        icon: Cpu,
+        title: "Latih modelmu",
+        body: "Training menghabiskan compute. Semakin banyak epoch, semakin tinggi kualitas — namun marginal returns akan turun.",
+      },
+      {
+        icon: TrendingUp,
+        title: "Luncurkan dan tumbuh",
+        body: "Evaluasi sebelum launch. Tiap rilis mempengaruhi pengguna, revenue, dan reputasi. Tumbuh dari garage ke AI empire.",
+      },
+    ],
+    nameTitle: "Beri nama perusahaanmu",
+    nameSubtitle: "Nama ini akan muncul di Dashboard dan log peristiwa.",
+    nameField: "Nama Perusahaan",
+    namePlaceholder: "Mis. Lumen Labs",
+    back: "Kembali",
+    next: "Lanjut",
+    start: "Mulai Bermain",
   },
-  {
-    icon: Database,
-    title: "Pilih data dengan bijak",
-    body: "Data adalah bahan bakar. Data murah cepat dapat, tapi membawa risiko bias dan halusinasi. Data premium mahal, tapi reputasi tetap aman.",
+  en: {
+    pill: "MVP 0.1.0",
+    langTitle: "Choose language",
+    langSubtitle: "Pick the language for the onboarding tutorial.",
+    langId: "Bahasa Indonesia",
+    langEn: "English",
+    steps: [
+      {
+        icon: Sparkles,
+        title: "Welcome, Founder",
+        body: "You just founded an AI startup in your garage. Your goal: build AI products, gain users, and grow into a global company.",
+      },
+      {
+        icon: Database,
+        title: "Choose data wisely",
+        body: "Data is fuel. Cheap data is fast to grab, but it carries bias and hallucination risks. Premium data costs more, but your reputation stays safe.",
+      },
+      {
+        icon: Cpu,
+        title: "Train your model",
+        body: "Training spends compute. More epochs mean higher quality — though marginal returns will taper off.",
+      },
+      {
+        icon: TrendingUp,
+        title: "Launch and grow",
+        body: "Evaluate before launching. Each release affects users, revenue, and reputation. Grow from garage to AI empire.",
+      },
+    ],
+    nameTitle: "Name your company",
+    nameSubtitle: "This name will appear on the Dashboard and in event logs.",
+    nameField: "Company Name",
+    namePlaceholder: "e.g. Lumen Labs",
+    back: "Back",
+    next: "Next",
+    start: "Start Playing",
   },
-  {
-    icon: Cpu,
-    title: "Latih modelmu",
-    body: "Training menghabiskan compute. Semakin banyak epoch, semakin tinggi kualitas — namun marginal returns akan turun.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Luncurkan dan tumbuh",
-    body: "Evaluasi sebelum launch. Tiap rilis mempengaruhi pengguna, revenue, dan reputasi. Tumbuh dari garage ke AI empire.",
-  },
+};
+
+const LANGUAGES = [
+  { code: "id", flag: "🇮🇩", labelKey: "langId" },
+  { code: "en", flag: "🇬🇧", labelKey: "langEn" },
 ];
 
 export default function Onboarding() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [step, setStep] = useState(0);
-  const [name, setName] = useState("Neural Empire Inc.");
+  const storedLanguage = useGameStore((s) => s.language);
   const completeOnboarding = useGameStore((s) => s.completeOnboarding);
   const setCompanyName = useGameStore((s) => s.setCompanyName);
+  const setLanguage = useGameStore((s) => s.setLanguage);
 
-  const isLast = step === STEPS.length;
-  const Active = STEPS[step]?.icon;
+  const [lang, setLang] = useState(storedLanguage === "en" ? "en" : "id");
+  const [step, setStep] = useState(0);
+  const [name, setName] = useState("Neural Empire Inc.");
+
+  const t = STRINGS[lang];
+  // Step 0 = language picker, 1..4 = content, 5 = company name
+  const TOTAL_STEPS = t.steps.length + 2;
+  const isNameStep = step === TOTAL_STEPS - 1;
+  const isLangStep = step === 0;
+  const Active = t.steps[step - 1]?.icon;
+  const activeTitle = isNameStep
+    ? t.nameTitle
+    : isLangStep
+    ? t.langTitle
+    : t.steps[step - 1].title;
+  const activeBody = isNameStep
+    ? null
+    : isLangStep
+    ? t.langSubtitle
+    : t.steps[step - 1].body;
 
   const handleNext = () => {
-    if (isLast) {
+    if (isNameStep) {
       setCompanyName(name?.trim() || "Neural Empire Inc.");
+      setLanguage(lang);
       completeOnboarding();
       router.replace("/(tabs)/dashboard");
       return;
@@ -64,9 +143,9 @@ export default function Onboarding() {
           gap: 16,
         }}
       >
-        <Pill label="MVP 0.1.0" variant="soft" />
+        <Pill label={t.pill} variant="soft" />
 
-        {isLast ? (
+        {isNameStep ? (
           <>
             <Text
               style={{
@@ -76,10 +155,10 @@ export default function Onboarding() {
                 letterSpacing: -0.5,
               }}
             >
-              Beri nama perusahaanmu
+              {t.nameTitle}
             </Text>
             <Text style={{ fontSize: 14, color: "#6B7280", marginBottom: 8 }}>
-              Nama ini akan muncul di Dashboard dan log peristiwa.
+              {t.nameSubtitle}
             </Text>
 
             <Card>
@@ -93,12 +172,12 @@ export default function Onboarding() {
                   letterSpacing: 0.5,
                 }}
               >
-                Nama Perusahaan
+                {t.nameField}
               </Text>
               <TextInput
                 value={name}
                 onChangeText={setName}
-                placeholder="Mis. Lumen Labs"
+                placeholder={t.namePlaceholder}
                 placeholderTextColor="#9CA3AF"
                 style={{
                   borderWidth: 1,
@@ -112,6 +191,47 @@ export default function Onboarding() {
                 }}
               />
             </Card>
+          </>
+        ) : isLangStep ? (
+          <>
+            <View style={{ marginTop: 12, gap: 12 }}>
+              {LANGUAGES.map((l) => {
+                const selected = lang === l.code;
+                return (
+                  <Pressable
+                    key={l.code}
+                    onPress={() => setLang(l.code)}
+                    style={({ pressed }) => ({
+                      borderWidth: 1,
+                      borderColor: selected ? "#2563EB" : "#E5E7EB",
+                      backgroundColor: selected ? "#EFF6FF" : "#FFFFFF",
+                      borderRadius: 12,
+                      paddingHorizontal: 16,
+                      paddingVertical: 18,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 14,
+                      opacity: pressed ? 0.85 : 1,
+                    })}
+                  >
+                    <Text style={{ fontSize: 28 }}>{l.flag}</Text>
+                    <Text
+                      style={{
+                        flex: 1,
+                        fontSize: 16,
+                        fontWeight: "600",
+                        color: "#111827",
+                      }}
+                    >
+                      {t[l.labelKey]}
+                    </Text>
+                    {selected ? (
+                      <Check size={20} color="#2563EB" />
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
           </>
         ) : (
           <>
@@ -138,7 +258,7 @@ export default function Onboarding() {
                 letterSpacing: -0.5,
               }}
             >
-              {STEPS[step].title}
+              {activeTitle}
             </Text>
             <Text
               style={{
@@ -147,12 +267,12 @@ export default function Onboarding() {
                 color: "#6B7280",
               }}
             >
-              {STEPS[step].body}
+              {activeBody}
             </Text>
           </>
         )}
 
-        {/* Step dots */}
+        {/* Step dots: language + content + name */}
         <View
           style={{
             flexDirection: "row",
@@ -160,7 +280,7 @@ export default function Onboarding() {
             marginTop: 12,
           }}
         >
-          {STEPS.concat([{}]).map((_, i) => (
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
             <View
               key={i}
               style={{
@@ -188,14 +308,14 @@ export default function Onboarding() {
       >
         {step > 0 ? (
           <Button
-            label="Kembali"
+            label={t.back}
             variant="secondary"
             onPress={() => setStep((s) => s - 1)}
           />
         ) : null}
         <View style={{ flex: 1 }}>
           <Button
-            label={isLast ? "Mulai Bermain" : "Lanjut"}
+            label={isNameStep ? t.start : t.next}
             onPress={handleNext}
             fullWidth
           />

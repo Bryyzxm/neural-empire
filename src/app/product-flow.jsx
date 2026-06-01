@@ -17,6 +17,7 @@ import {
   XCircle,
 } from "lucide-react-native";
 import { useGameStore } from "@/store/gameStore";
+import { useT } from "@/i18n/useT";
 import Card from "@/components/ui/Card";
 import Pill from "@/components/ui/Pill";
 import Button from "@/components/ui/Button";
@@ -31,33 +32,28 @@ import {
   buildTuringCards,
 } from "@/data/trainingScenarios";
 
-const STAGES = [
-  { id: "select", label: "Pilih" },
-  { id: "data", label: "Data" },
-  { id: "training", label: "RLHF" },
-  { id: "turing", label: "Turing" },
-  { id: "eval", label: "Eval" },
-];
+const STAGE_KEYS = ["select", "data", "training", "turing", "eval"];
 
 // ── Root Screen ───────────────────────────────────────────────────────────────
 export default function ProductFlow() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const t = useT();
   const currentDraft = useGameStore((s) => s.currentDraft);
   const unlockedResearch = useGameStore((s) => s.unlockedResearch);
   const startDraft = useGameStore((s) => s.startDraft);
   const cancelDraft = useGameStore((s) => s.cancelDraft);
 
   const activeStage = currentDraft ? currentDraft.stage : "select";
-  const stageIndex = STAGES.findIndex((s) => s.id === activeStage);
+  const stageIndex = STAGE_KEYS.indexOf(activeStage);
 
   const handleCancelDraft = () => {
     Alert.alert(
-      "Batalkan draft?",
-      "Cash & compute yang sudah dipakai tidak dikembalikan.",
+      t("product_flow.cancel_title"),
+      t("product_flow.cancel_body"),
       [
-        { text: "Tidak", style: "cancel" },
-        { text: "Batalkan", style: "destructive", onPress: cancelDraft },
+        { text: t("common.no"), style: "cancel" },
+        { text: t("product_flow.cancel_confirm"), style: "destructive", onPress: cancelDraft },
       ],
     );
   };
@@ -96,7 +92,7 @@ export default function ProductFlow() {
           >
             <ChevronLeft size={22} color="#111827" />
             <Text style={{ fontSize: 15, color: "#111827", fontWeight: "500" }}>
-              Tutup
+              {t("common.close")}
             </Text>
           </Pressable>
           {currentDraft ? (
@@ -121,12 +117,12 @@ export default function ProductFlow() {
             borderColor: "#E5E7EB",
           }}
         >
-          {STAGES.map((s, i) => {
+          {STAGE_KEYS.map((sid, i) => {
             const done = i < stageIndex;
             const active = i === stageIndex;
             return (
               <View
-                key={s.id}
+                key={sid}
                 style={{
                   flex: 1,
                   paddingBottom: 10,
@@ -148,7 +144,7 @@ export default function ProductFlow() {
                   }}
                 >
                   {done ? "✓" : null}
-                  {s.label}
+                  {t(`product_flow.stage.${sid}`)}
                 </Text>
               </View>
             );
@@ -182,12 +178,13 @@ export default function ProductFlow() {
 
 // ── Stage 1: Select ───────────────────────────────────────────────────────────
 function SelectStage({ unlockedResearch, onSelect }) {
+  const t = useT();
   const cash = useGameStore((s) => s.cash);
   const types = Object.values(PRODUCT_TYPES);
   return (
     <>
       <View>
-        <Pill label="Langkah 1" variant="soft" />
+        <Pill label={t("product_flow.pill_step", { n: 1 })} variant="soft" />
         <Text
           style={{
             fontSize: 22,
@@ -197,20 +194,20 @@ function SelectStage({ unlockedResearch, onSelect }) {
             letterSpacing: -0.3,
           }}
         >
-          Pilih produk AI
+          {t("product_flow.select.title")}
         </Text>
         <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
-          Produk terkunci memerlukan riset di tab Riset.
+          {t("product_flow.select.subtitle")}
         </Text>
       </View>
-      {types.map((t) => {
+      {types.map((pt) => {
         const locked =
-          t.unlockRequirement &&
-          !unlockedResearch.includes(t.unlockRequirement);
-        const canAfford = cash >= t.baseDataCost * 0.5;
+          pt.unlockRequirement &&
+          !unlockedResearch.includes(pt.unlockRequirement);
+        const canAfford = cash >= pt.baseDataCost * 0.5;
         return (
-          <Card key={t.id}>
-            <Pill label={t.category} variant="outline" />
+          <Card key={pt.id}>
+            <Pill label={t(pt.category)} variant="outline" />
             <Text
               style={{
                 fontSize: 16,
@@ -219,35 +216,35 @@ function SelectStage({ unlockedResearch, onSelect }) {
                 marginTop: 8,
               }}
             >
-              {t.name}
+              {t(pt.name)}
             </Text>
             <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
-              {t.description}
+              {t(pt.description)}
             </Text>
             <View style={{ marginTop: 10 }}>
               <StatRow
-                label="Biaya data dasar"
-                value={formatCurrency(t.baseDataCost)}
+                label={t("product_flow.stat.base_data_cost")}
+                value={formatCurrency(pt.baseDataCost)}
               />
               <StatRow
-                label="Compute per epoch"
-                value={`${Math.max(1, Math.round(t.baseComputeCost / 3))}`}
+                label={t("product_flow.stat.compute_per_epoch")}
+                value={`${Math.max(1, Math.round(pt.baseComputeCost / 3))}`}
               />
               <StatRow
-                label="Minimum epochs"
-                value={`${t.minTrainingEpochs}`}
+                label={t("product_flow.stat.min_epochs")}
+                value={`${pt.minTrainingEpochs}`}
               />
             </View>
             <View style={{ marginTop: 12 }}>
               <Button
                 label={
                   locked
-                    ? "Terkunci — riset dulu"
+                    ? t("product_flow.btn.locked")
                     : !canAfford
-                      ? "Cash tidak cukup"
-                      : "Mulai"
+                      ? t("product_flow.btn.cash_low")
+                      : t("common.start")
                 }
-                onPress={() => onSelect(t.id)}
+                onPress={() => onSelect(pt.id)}
                 disabled={locked || !canAfford}
                 fullWidth
               />
@@ -261,6 +258,7 @@ function SelectStage({ unlockedResearch, onSelect }) {
 
 // ── Stage 2: Data ─────────────────────────────────────────────────────────────
 function DataStage() {
+  const t = useT();
   const draft = useGameStore((s) => s.currentDraft);
   const cash = useGameStore((s) => s.cash);
   const purchaseData = useGameStore((s) => s.purchaseData);
@@ -275,13 +273,13 @@ function DataStage() {
 
   const handleBuy = () => {
     const res = purchaseData(selectedTier);
-    if (!res.ok) Alert.alert("Tidak bisa membeli data", res.error);
+    if (!res.ok) Alert.alert(t("product_flow.alert.buy_fail_title"), res.error);
   };
 
   return (
     <>
       <View>
-        <Pill label="Langkah 2" variant="soft" />
+        <Pill label={t("product_flow.pill_step", { n: 2 })} variant="soft" />
         <Text
           style={{
             fontSize: 22,
@@ -291,22 +289,22 @@ function DataStage() {
             letterSpacing: -0.3,
           }}
         >
-          Siapkan data
+          {t("product_flow.data.title")}
         </Text>
         <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
-          Pilihan data menentukan kualitas, bias, dan risiko halusinasi.
+          {t("product_flow.data.subtitle")}
         </Text>
       </View>
-      {tiers.map((t) => {
-        const isSelected = selectedTier === t.id;
+      {tiers.map((d) => {
+        const isSelected = selectedTier === d.id;
         const tierCost = Math.round(
-          productType.baseDataCost * t.costMultiplier,
+          productType.baseDataCost * d.costMultiplier,
         );
         const canAfford = cash >= tierCost;
         return (
           <Pressable
-            key={t.id}
-            onPress={() => setSelectedTier(t.id)}
+            key={d.id}
+            onPress={() => setSelectedTier(d.id)}
             style={({ pressed }) => ({
               backgroundColor: "#FFFFFF",
               borderRadius: 12,
@@ -322,7 +320,7 @@ function DataStage() {
               <Text
                 style={{ fontSize: 15, fontWeight: "600", color: "#111827" }}
               >
-                {t.name}
+                {t(d.name)}
               </Text>
               <Text
                 style={{
@@ -335,12 +333,12 @@ function DataStage() {
               </Text>
             </View>
             <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>
-              {t.description}
+              {t(d.description)}
             </Text>
             <View style={{ marginTop: 8 }}>
               <StatRow
-                label="Quality potensial"
-                value={formatPercent(t.qualityScore)}
+                label={t("product_flow.data.potential_quality")}
+                value={formatPercent(d.qualityScore)}
               />
               <StatRow
                 label={
@@ -348,11 +346,11 @@ function DataStage() {
                     termId="bias"
                     style={{ color: "#6B7280", fontSize: 14 }}
                   >
-                    Risiko bias
+                    {t("product_flow.data.bias_risk")}
                   </TooltipWord>
                 }
-                value={formatPercent(t.biasRisk)}
-                valueColor={t.biasRisk > 0.4 ? "#B91C1C" : "#111827"}
+                value={formatPercent(d.biasRisk)}
+                valueColor={d.biasRisk > 0.4 ? "#B91C1C" : "#111827"}
               />
               <StatRow
                 label={
@@ -360,18 +358,18 @@ function DataStage() {
                     termId="hallucination"
                     style={{ color: "#6B7280", fontSize: 14 }}
                   >
-                    Risiko halusinasi
+                    {t("product_flow.data.hallucination_risk")}
                   </TooltipWord>
                 }
-                value={formatPercent(t.hallucinationRisk)}
-                valueColor={t.hallucinationRisk > 0.4 ? "#B91C1C" : "#111827"}
+                value={formatPercent(d.hallucinationRisk)}
+                valueColor={d.hallucinationRisk > 0.4 ? "#B91C1C" : "#111827"}
               />
             </View>
           </Pressable>
         );
       })}
       <Button
-        label={`Beli data — ${formatCurrency(cost)}`}
+        label={t("product_flow.data.buy_cta", { cost: formatCurrency(cost) })}
         onPress={handleBuy}
         disabled={cash < cost}
         fullWidth
@@ -382,23 +380,22 @@ function DataStage() {
 
 // ── Stage 3: Training (RLHF) ──────────────────────────────────────────────────
 function TrainingStage() {
+  const t = useT();
   const draft = useGameStore((s) => s.currentDraft);
   const compute = useGameStore((s) => s.compute);
   const runEpoch = useGameStore((s) => s.runTrainingEpoch);
   const advanceToTuring = useGameStore((s) => s.advanceToTuring);
   const buyCompute = useGameStore((s) => s.buyCompute);
   const refillCompute = useGameStore((s) => s.refillCompute);
-  const [lastFeedback, setLastFeedback] = useState(null); // 'approve'|'reject'|'skip'|null
+  const [lastFeedback, setLastFeedback] = useState(null);
 
   if (!draft) return null;
   const productType = PRODUCT_TYPES[draft.typeId];
-  const fx_eff = 0; // shown cost uses base for display
   const baseComputePerEpoch = Math.max(
     1,
     Math.round(productType.baseComputeCost / 3),
   );
 
-  // Pick the current scenario (deterministic from epoch index)
   const scenario = getRLHFScenario(draft.typeId, draft.epochs);
   const responseType = pickResponseType(draft.qualityScore, draft.epochs);
   const responseText =
@@ -410,7 +407,7 @@ function TrainingStage() {
     const res = runEpoch(rating, responseType);
     if (!res.ok) {
       setLastFeedback(null);
-      Alert.alert("Tidak bisa training", res.error);
+      Alert.alert(t("product_flow.alert.train_fail_title"), res.error);
     }
   };
 
@@ -420,7 +417,6 @@ function TrainingStage() {
     skip: Math.max(1, Math.round(baseComputePerEpoch * 0.7)),
   };
 
-  // RLHF history chips
   const historyLabels = { approve: "✓", reject: "✗", skip: "→" };
   const historyColors = {
     approve: "#22C55E",
@@ -432,7 +428,7 @@ function TrainingStage() {
     <>
       {/* Header */}
       <View>
-        <Pill label="Langkah 3 — RLHF" variant="soft" />
+        <Pill label={t("product_flow.training.pill")} variant="soft" />
         <Text
           style={{
             fontSize: 22,
@@ -442,11 +438,10 @@ function TrainingStage() {
             letterSpacing: -0.3,
           }}
         >
-          Reinforcement Learning
+          {t("product_flow.training.title")}
         </Text>
         <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
-          Baca output model, lalu beri feedback untuk melatihnya. Feedback
-          menentukan arah pembelajaran.
+          {t("product_flow.training.subtitle")}
         </Text>
       </View>
 
@@ -462,19 +457,19 @@ function TrainingStage() {
           <RingStat
             value={draft.qualityScore}
             label={formatPercent(draft.qualityScore)}
-            sub="kualitas"
+            sub={t("product_flow.training.sub.quality")}
             color="#2563EB"
           />
           <RingStat
             value={draft.trainingProgress}
             label={formatPercent(draft.trainingProgress)}
-            sub="progres"
+            sub={t("product_flow.training.sub.progress")}
             color="#EA580C"
           />
           <RingStat
             value={1 - draft.hallucinationRisk}
             label={formatPercent(1 - draft.hallucinationRisk)}
-            sub="keamanan"
+            sub={t("product_flow.training.sub.safety")}
             color="#22C55E"
           />
         </View>
@@ -485,12 +480,15 @@ function TrainingStage() {
                 termId="epoch"
                 style={{ color: "#6B7280", fontSize: 14 }}
               >
-                Epoch
+                {t("product_flow.training.epoch_label")}
               </TooltipWord>
             }
             value={`${draft.epochs} / ${productType.minTrainingEpochs}`}
           />
-          <StatRow label="Compute tersisa" value={`${Math.round(compute)}`} />
+          <StatRow
+            label={t("product_flow.training.compute_left")}
+            value={`${Math.round(compute)}`}
+          />
         </View>
         {/* RLHF history */}
         {(draft.rlhfHistory || []).length > 0 ? (
@@ -503,7 +501,7 @@ function TrainingStage() {
                 marginRight: 2,
               }}
             >
-              Feedback:
+              {t("product_flow.training.feedback_label")}
             </Text>
             {(draft.rlhfHistory || []).map((r, i) => (
               <View
@@ -533,7 +531,6 @@ function TrainingStage() {
       </Card>
 
       {trainingDone ? (
-        /* Training selesai — lanjut ke Turing Test */
         <Card>
           <View
             style={{
@@ -545,16 +542,17 @@ function TrainingStage() {
           >
             <Brain size={20} color="#7C3AED" />
             <Text style={{ fontSize: 16, fontWeight: "600", color: "#111827" }}>
-              Training selesai!
+              {t("product_flow.training.done_title")}
             </Text>
           </View>
           <Text style={{ fontSize: 14, color: "#6B7280", lineHeight: 21 }}>
-            Model telah dilatih {draft.epochs} epoch dengan feedback RLHF.
-            Langkah berikutnya: uji apakah model bisa lolos Turing Test.
+            {t("product_flow.training.done_body", {
+              epochs: draft.epochs,
+            })}
           </Text>
           <View style={{ marginTop: 14 }}>
             <Button
-              label="Mulai Turing Test →"
+              label={t("product_flow.training.start_turing_cta")}
               icon={<Brain size={16} color="#FFFFFF" />}
               onPress={advanceToTuring}
               fullWidth
@@ -582,13 +580,15 @@ function TrainingStage() {
                   letterSpacing: 0.5,
                 }}
               >
-                Output Model — Epoch {draft.epochs + 1}
+                {t("product_flow.training.scenario_header", {
+                  n: draft.epochs + 1,
+                })}
               </Text>
               <Pill
                 label={
                   responseType === "good"
-                    ? "Output normal"
-                    : "Output bermasalah"
+                    ? t("product_flow.training.pill.good")
+                    : t("product_flow.training.pill.bad")
                 }
                 variant="status"
                 dotColor={responseType === "good" ? "#22C55E" : "#EF4444"}
@@ -612,10 +612,10 @@ function TrainingStage() {
                   marginBottom: 4,
                 }}
               >
-                PROMPT USER
+                {t("product_flow.training.prompt_label")}
               </Text>
               <Text style={{ fontSize: 14, color: "#374151", lineHeight: 20 }}>
-                {scenario.prompt}
+                {t(scenario.prompt)}
               </Text>
             </View>
 
@@ -638,10 +638,10 @@ function TrainingStage() {
                   marginBottom: 4,
                 }}
               >
-                RESPONS MODEL AI
+                {t("product_flow.training.response_label")}
               </Text>
               <Text style={{ fontSize: 14, color: "#374151", lineHeight: 21 }}>
-                {responseText}
+                {t(responseText)}
               </Text>
             </View>
           </Card>
@@ -656,11 +656,10 @@ function TrainingStage() {
                 marginBottom: 4,
               }}
             >
-              Beri feedback ke model
+              {t("product_flow.rating.title")}
             </Text>
             <Text style={{ fontSize: 13, color: "#6B7280", marginBottom: 14 }}>
-              Feedback ini menjadi sinyal reinforcement learning untuk epoch
-              berikutnya.
+              {t("product_flow.rating.subtitle")}
             </Text>
             <View style={{ gap: 10 }}>
               {/* Approve */}
@@ -694,10 +693,10 @@ function TrainingStage() {
                       color: "#111827",
                     }}
                   >
-                    Respons Tepat
+                    {t("product_flow.rating.approve.title")}
                   </Text>
                   <Text style={{ fontSize: 12, color: "#6B7280" }}>
-                    Sinyal positif — kualitas naik normal
+                    {t("product_flow.rating.approve.subtitle")}
                   </Text>
                 </View>
                 <Text
@@ -738,10 +737,10 @@ function TrainingStage() {
                       color: "#111827",
                     }}
                   >
-                    Respons Salah
+                    {t("product_flow.rating.reject.title")}
                   </Text>
                   <Text style={{ fontSize: 12, color: "#6B7280" }}>
-                    Koreksi intensif — kualitas naik lebih besar, halusinasi ↓
+                    {t("product_flow.rating.reject.subtitle")}
                   </Text>
                 </View>
                 <Text
@@ -776,10 +775,10 @@ function TrainingStage() {
                       color: "#111827",
                     }}
                   >
-                    Lewati
+                    {t("product_flow.rating.skip.title")}
                   </Text>
                   <Text style={{ fontSize: 12, color: "#6B7280" }}>
-                    Hemat compute — peningkatan minimal
+                    {t("product_flow.rating.skip.subtitle")}
                   </Text>
                 </View>
                 <Text
@@ -800,6 +799,7 @@ function TrainingStage() {
 }
 
 function ComputeShortcut() {
+  const t = useT();
   const buyCompute = useGameStore((s) => s.buyCompute);
   const refillCompute = useGameStore((s) => s.refillCompute);
   return (
@@ -812,32 +812,32 @@ function ComputeShortcut() {
           marginBottom: 4,
         }}
       >
-        Compute habis
+        {t("product_flow.refill.title")}
       </Text>
       <Text style={{ fontSize: 13, color: "#6B7280", marginBottom: 12 }}>
-        Refill atau upgrade kapasitas untuk melanjutkan.
+        {t("product_flow.refill.subtitle")}
       </Text>
       <View style={{ flexDirection: "row", gap: 8 }}>
         <View style={{ flex: 1 }}>
           <Button
-            label="Refill ($100)"
+            label={t("product_flow.refill.refill_cta")}
             variant="soft"
             icon={<Zap size={14} color="#2563EB" />}
             onPress={() => {
               const r = refillCompute();
-              if (!r.ok) Alert.alert("Gagal", r.error);
+              if (!r.ok) Alert.alert(t("common.failed"), r.error);
             }}
             fullWidth
           />
         </View>
         <View style={{ flex: 1 }}>
           <Button
-            label="+10 cap ($800)"
+            label={t("product_flow.refill.buy_cap_cta")}
             variant="secondary"
             icon={<Cpu size={14} color="#111827" />}
             onPress={() => {
               const r = buyCompute(10);
-              if (!r.ok) Alert.alert("Gagal", r.error);
+              if (!r.ok) Alert.alert(t("common.failed"), r.error);
             }}
             fullWidth
           />
@@ -849,11 +849,12 @@ function ComputeShortcut() {
 
 // ── Stage 4: Turing Test ──────────────────────────────────────────────────────
 function TuringTestStage() {
+  const t = useT();
   const draft = useGameStore((s) => s.currentDraft);
   const submitTuringTest = useGameStore((s) => s.submitTuringTest);
-  const [phase, setPhase] = useState("intro"); // intro → testing → result
+  const [phase, setPhase] = useState("intro");
   const [cards, setCards] = useState([]);
-  const [answers, setAnswers] = useState({}); // { cardId: 'ai' | 'human' }
+  const [answers, setAnswers] = useState({});
   const [revealed, setRevealed] = useState(false);
 
   if (!draft) return null;
@@ -884,7 +885,6 @@ function TuringTestStage() {
     setTimeout(() => submitTuringTest(score), 400);
   };
 
-  // Score derived from answers
   const correctCount = revealed
     ? cards.filter((c) => answers[c.id] === (c.isAI ? "ai" : "human")).length
     : 0;
@@ -894,7 +894,7 @@ function TuringTestStage() {
     return (
       <>
         <View>
-          <Pill label="Langkah 4 — Turing Test" variant="soft" />
+          <Pill label={t("product_flow.turing.pill")} variant="soft" />
           <Text
             style={{
               fontSize: 22,
@@ -904,10 +904,10 @@ function TuringTestStage() {
               letterSpacing: -0.3,
             }}
           >
-            Turing Test
+            {t("product_flow.turing.title")}
           </Text>
           <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
-            Uji seberapa "manusiawi" output modelmu.
+            {t("product_flow.turing.subtitle")}
           </Text>
         </View>
 
@@ -922,7 +922,7 @@ function TuringTestStage() {
           >
             <Brain size={20} color="#7C3AED" />
             <Text style={{ fontSize: 16, fontWeight: "600", color: "#111827" }}>
-              Apa itu Turing Test?
+              {t("product_flow.turing.what_title")}
             </Text>
           </View>
           <Text
@@ -933,9 +933,7 @@ function TuringTestStage() {
               marginBottom: 12,
             }}
           >
-            Turing Test diciptakan oleh Alan Turing (1950) untuk mengukur apakah
-            sebuah mesin bisa berperilaku layaknya manusia — sebuah standar
-            klasik kecerdasan buatan.
+            {t("product_flow.turing.what_body")}
           </Text>
           <View
             style={{
@@ -946,31 +944,33 @@ function TuringTestStage() {
             }}
           >
             <Text style={{ fontSize: 12, fontWeight: "600", color: "#7C3AED" }}>
-              ATURAN MAIN
+              {t("product_flow.turing.rules_title")}
             </Text>
             <Text style={{ fontSize: 13, color: "#4B5563", lineHeight: 20 }}>
-              Kamu akan melihat 6 respons percakapan — 3 ditulis oleh AI, 3
-              ditulis oleh manusia. Identifikasi mana yang mana. Skor kamu
-              menentukan seberapa "lolos" model AI-mu.
+              {t("product_flow.turing.rules_body")}
             </Text>
           </View>
           <View style={{ marginTop: 12, gap: 6 }}>
             <ScoreExplain
               score="≥75%"
-              effect="Kualitas +8%, Halusinasi berkurang"
+              effect={t("product_flow.turing.score_high")}
               positive
             />
-            <ScoreExplain score="50–74%" effect="Kualitas +4%" positive />
+            <ScoreExplain
+              score="50–74%"
+              effect={t("product_flow.turing.score_mid")}
+              positive
+            />
             <ScoreExplain
               score="<50%"
-              effect="Halusinasi meningkat — model terlalu 'robotic'"
+              effect={t("product_flow.turing.score_low")}
               positive={false}
             />
           </View>
         </Card>
 
         <Button
-          label="Mulai Turing Test"
+          label={t("product_flow.turing.start_cta")}
           icon={<Brain size={16} color="#FFFFFF" />}
           onPress={startTest}
           fullWidth
@@ -983,7 +983,7 @@ function TuringTestStage() {
     return (
       <>
         <View>
-          <Pill label="Turing Test" variant="soft" />
+          <Pill label={t("product_flow.turing.pill")} variant="soft" />
           <Text
             style={{
               fontSize: 22,
@@ -993,10 +993,13 @@ function TuringTestStage() {
               letterSpacing: -0.3,
             }}
           >
-            AI atau Manusia?
+            {t("product_flow.turing.prompt_title")}
           </Text>
           <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
-            {Object.keys(answers).length} / {cards.length} dijawab
+            {t("product_flow.turing.progress", {
+              done: Object.keys(answers).length,
+              total: cards.length,
+            })}
           </Text>
         </View>
 
@@ -1004,7 +1007,6 @@ function TuringTestStage() {
           const chosen = answers[card.id];
           return (
             <Card key={card.id}>
-              {/* Prompt */}
               <View
                 style={{
                   backgroundColor: "#F3F4F6",
@@ -1021,13 +1023,12 @@ function TuringTestStage() {
                     marginBottom: 2,
                   }}
                 >
-                  PERTANYAAN
+                  {t("product_flow.turing.question_label")}
                 </Text>
                 <Text style={{ fontSize: 13, color: "#374151" }}>
-                  {card.prompt}
+                  {t(card.prompt)}
                 </Text>
               </View>
-              {/* Response */}
               <Text
                 style={{
                   fontSize: 14,
@@ -1036,9 +1037,8 @@ function TuringTestStage() {
                   marginBottom: 12,
                 }}
               >
-                {card.text}
+                {t(card.text)}
               </Text>
-              {/* Answer buttons */}
               <View style={{ flexDirection: "row", gap: 8 }}>
                 <Pressable
                   onPress={() => handleAnswer(card.id, "human")}
@@ -1061,7 +1061,7 @@ function TuringTestStage() {
                       color: chosen === "human" ? "#2563EB" : "#6B7280",
                     }}
                   >
-                    Manusia
+                    {t("product_flow.turing.choice_human")}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -1085,7 +1085,7 @@ function TuringTestStage() {
                       color: chosen === "ai" ? "#7C3AED" : "#6B7280",
                     }}
                   >
-                    AI
+                    {t("product_flow.turing.choice_ai")}
                   </Text>
                 </Pressable>
               </View>
@@ -1094,7 +1094,11 @@ function TuringTestStage() {
         })}
 
         {allAnswered ? (
-          <Button label="Lihat hasil →" onPress={handleReveal} fullWidth />
+          <Button
+            label={t("product_flow.turing.reveal_cta")}
+            onPress={handleReveal}
+            fullWidth
+          />
         ) : null}
       </>
     );
@@ -1103,11 +1107,11 @@ function TuringTestStage() {
   if (phase === "result") {
     const verdict =
       score >= 0.75
-        ? { label: "Excellent", color: "#16A34A", bg: "#F0FDF4", emoji: "🏆" }
+        ? { key: "excellent", color: "#16A34A", bg: "#F0FDF4", emoji: "🏆" }
         : score >= 0.5
-          ? { label: "Good", color: "#D97706", bg: "#FFFBEB", emoji: "✅" }
+          ? { key: "good", color: "#D97706", bg: "#FFFBEB", emoji: "✅" }
           : {
-              label: "Perlu Perbaikan",
+              key: "poor",
               color: "#B91C1C",
               bg: "#FFF1F2",
               emoji: "⚠️",
@@ -1116,7 +1120,7 @@ function TuringTestStage() {
     return (
       <>
         <View>
-          <Pill label="Hasil Turing Test" variant="soft" />
+          <Pill label={t("product_flow.turing.result_pill")} variant="soft" />
           <Text
             style={{
               fontSize: 22,
@@ -1126,10 +1130,17 @@ function TuringTestStage() {
               letterSpacing: -0.3,
             }}
           >
-            {verdict.emoji} {correctCount} / {cards.length} benar
+            {verdict.emoji}{" "}
+            {t("product_flow.turing.score_count", {
+              correct: correctCount,
+              total: cards.length,
+            })}
           </Text>
           <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
-            Skor {formatPercent(score)} — {verdict.label}
+            {t("product_flow.turing.score_summary", {
+              pct: formatPercent(score),
+              verdict: t(`product_flow.turing.verdict.${verdict.key}`),
+            })}
           </Text>
         </View>
 
@@ -1150,22 +1161,19 @@ function TuringTestStage() {
               marginBottom: 4,
             }}
           >
-            Efek pada model:
+            {t("product_flow.turing.effect_title")}
           </Text>
           {score >= 0.75 ? (
             <Text style={{ fontSize: 14, color: "#374151", lineHeight: 21 }}>
-              Kualitas model +8% · Halusinasi berkurang 18%{"\n"}Model sangat
-              mirip tulisan manusia!
+              {t("product_flow.turing.effect_high")}
             </Text>
           ) : score >= 0.5 ? (
             <Text style={{ fontSize: 14, color: "#374151", lineHeight: 21 }}>
-              Kualitas model +4%{"\n"}Model cukup meyakinkan, masih bisa
-              dideteksi.
+              {t("product_flow.turing.effect_mid")}
             </Text>
           ) : (
             <Text style={{ fontSize: 14, color: "#374151", lineHeight: 21 }}>
-              Halusinasi meningkat 12%{"\n"}Output terlalu kaku dan mudah
-              diidentifikasi sebagai AI.
+              {t("product_flow.turing.effect_low")}
             </Text>
           )}
         </View>
@@ -1192,19 +1200,26 @@ function TuringTestStage() {
                 <Text
                   style={{ fontSize: 14, fontWeight: "600", color: "#111827" }}
                 >
-                  {correct ? "Benar" : "Salah"} — ini ditulis oleh{" "}
-                  {card.isAI ? "🤖 AI" : "🧑 Manusia"}
+                  {correct
+                    ? t("product_flow.turing.correct")
+                    : t("product_flow.turing.wrong")}
+                  {" — "}
+                  {card.isAI
+                    ? t("product_flow.turing.written_by_ai")
+                    : t("product_flow.turing.written_by_human")}
                 </Text>
               </View>
               <Text
                 style={{ fontSize: 13, color: "#6B7280", fontStyle: "italic" }}
                 numberOfLines={2}
               >
-                "{card.text.slice(0, 100)}…"
+                "{t(card.text).slice(0, 100)}…"
               </Text>
               {!correct ? (
                 <Text style={{ fontSize: 12, color: "#6B7280", marginTop: 6 }}>
-                  {card.isAI ? card.scenario.aiLabel : card.scenario.humanLabel}
+                  {card.isAI
+                    ? t(card.scenario.aiLabel)
+                    : t(card.scenario.humanLabel)}
                 </Text>
               ) : null}
             </Card>
@@ -1212,7 +1227,7 @@ function TuringTestStage() {
         })}
 
         <Text style={{ textAlign: "center", fontSize: 13, color: "#9CA3AF" }}>
-          Melanjutkan ke evaluasi…
+          {t("product_flow.turing.continuing")}
         </Text>
       </>
     );
@@ -1223,6 +1238,7 @@ function TuringTestStage() {
 
 // ── Stage 5: Eval ─────────────────────────────────────────────────────────────
 function EvalStage({ onLaunched }) {
+  const t = useT();
   const draft = useGameStore((s) => s.currentDraft);
   const launchProduct = useGameStore((s) => s.launchProduct);
   if (!draft) return null;
@@ -1231,30 +1247,40 @@ function EvalStage({ onLaunched }) {
   const safetyScore =
     1 - (draft.hallucinationRisk * 0.6 + draft.biasRisk * 0.4);
   const overallScore = draft.qualityScore * 0.7 + safetyScore * 0.3;
-  const verdict =
+  const verdictKey =
     overallScore > 0.7
-      ? { label: "Siap launch", color: "#22C55E" }
+      ? "ready"
       : overallScore > 0.5
-        ? { label: "Risiko sedang", color: "#EAB308" }
-        : { label: "Berisiko tinggi", color: "#EF4444" };
+        ? "risky_mid"
+        : "risky_high";
+  const verdictColor =
+    overallScore > 0.7
+      ? "#22C55E"
+      : overallScore > 0.5
+        ? "#EAB308"
+        : "#EF4444";
 
   const handleLaunch = () => {
     const res = launchProduct();
     if (!res.ok) {
-      Alert.alert("Gagal launch", res.error);
+      Alert.alert(t("product_flow.eval.launch_fail_title"), res.error);
       return;
     }
     Alert.alert(
-      "Produk diluncurkan! 🚀",
-      `${res.summary.initialUsers} pengguna awal.\nReputasi ${res.summary.reputationDelta >= 0 ? "+" : ""}${res.summary.reputationDelta}.`,
-      [{ text: "Selesai", onPress: onLaunched }],
+      t("product_flow.eval.launch_ok_title"),
+      t("product_flow.eval.launch_ok_body", {
+        users: res.summary.initialUsers,
+        rep: res.summary.reputationDelta >= 0 ? "+" : "",
+        repDelta: res.summary.reputationDelta,
+      }),
+      [{ text: t("common.done"), onPress: onLaunched }],
     );
   };
 
   return (
     <>
       <View>
-        <Pill label="Langkah 5 — Eval" variant="soft" />
+        <Pill label={t("product_flow.pill_step", { n: 5 })} variant="soft" />
         <Text
           style={{
             fontSize: 22,
@@ -1264,10 +1290,10 @@ function EvalStage({ onLaunched }) {
             letterSpacing: -0.3,
           }}
         >
-          Evaluasi pre-launch
+          {t("product_flow.eval.title")}
         </Text>
         <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
-          Review akhir sebelum produk dirilis ke pasar.
+          {t("product_flow.eval.subtitle")}
         </Text>
       </View>
 
@@ -1281,7 +1307,7 @@ function EvalStage({ onLaunched }) {
         >
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 11, color: "#6B7280", fontWeight: "500" }}>
-              VERDICT
+              {t("product_flow.eval.verdict_label")}
             </Text>
             <Text
               style={{
@@ -1291,18 +1317,18 @@ function EvalStage({ onLaunched }) {
                 marginTop: 4,
               }}
             >
-              {productType.name}
+              {t(productType.name)}
             </Text>
           </View>
           <Pill
-            label={verdict.label}
+            label={t(`product_flow.eval.verdict.${verdictKey}`)}
             variant="status"
-            dotColor={verdict.color}
+            dotColor={verdictColor}
           />
         </View>
         <View style={{ marginTop: 12 }}>
           <StatRow
-            label="Skor kualitas"
+            label={t("product_flow.eval.quality")}
             value={formatPercent(draft.qualityScore)}
           />
           <StatRow
@@ -1311,7 +1337,7 @@ function EvalStage({ onLaunched }) {
                 termId="hallucination"
                 style={{ color: "#6B7280", fontSize: 14 }}
               >
-                Risiko halusinasi
+                {t("product_flow.data.hallucination_risk")}
               </TooltipWord>
             }
             value={formatPercent(draft.hallucinationRisk)}
@@ -1323,7 +1349,7 @@ function EvalStage({ onLaunched }) {
                 termId="bias"
                 style={{ color: "#6B7280", fontSize: 14 }}
               >
-                Risiko bias
+                {t("product_flow.data.bias_risk")}
               </TooltipWord>
             }
             value={formatPercent(draft.biasRisk)}
@@ -1335,14 +1361,14 @@ function EvalStage({ onLaunched }) {
                 termId="launch_score"
                 style={{ color: "#6B7280", fontSize: 14 }}
               >
-                Skor keseluruhan
+                {t("product_flow.eval.overall")}
               </TooltipWord>
             }
             value={formatPercent(overallScore)}
           />
           {draft.turingScore !== null ? (
             <StatRow
-              label="Skor Turing Test"
+              label={t("product_flow.eval.turing_score")}
               value={formatPercent(draft.turingScore)}
               valueColor={
                 draft.turingScore >= 0.75
@@ -1357,7 +1383,7 @@ function EvalStage({ onLaunched }) {
       </Card>
 
       <Button
-        label="Luncurkan produk"
+        label={t("product_flow.eval.launch_cta")}
         icon={<Rocket size={16} color="#FFFFFF" />}
         onPress={handleLaunch}
         fullWidth

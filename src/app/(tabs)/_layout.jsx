@@ -8,8 +8,10 @@ import {
   Settings,
 } from "lucide-react-native";
 import { useGameStore } from "@/store/gameStore";
+import { useT } from "@/i18n/useT";
 
 export default function TabsLayout() {
+  const t = useT();
   const tick = useGameStore((s) => s.tick);
   const persist = useGameStore((s) => s.persist);
 
@@ -45,7 +47,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: "Dashboard",
+          title: t("tab.dashboard"),
           tabBarIcon: ({ color }) => (
             <LayoutDashboard color={color} size={22} />
           ),
@@ -54,28 +56,28 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="products"
         options={{
-          title: "Produk",
+          title: t("tab.products"),
           tabBarIcon: ({ color }) => <Boxes color={color} size={22} />,
         }}
       />
       <Tabs.Screen
         name="research"
         options={{
-          title: "Riset",
+          title: t("tab.research"),
           tabBarIcon: ({ color }) => <Atom color={color} size={22} />,
         }}
       />
       <Tabs.Screen
         name="operations"
         options={{
-          title: "Tim",
+          title: t("tab.operations"),
           tabBarIcon: ({ color }) => <Users color={color} size={22} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Setelan",
+          title: t("tab.settings"),
           tabBarIcon: ({ color }) => <Settings color={color} size={22} />,
         }}
       />

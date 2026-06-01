@@ -17,7 +17,7 @@ export function formatPercent(value) {
 }
 
 export function formatDuration(ms) {
-  if (ms <= 0) return "selesai";
+  if (ms <= 0) return "0s";
   const s = Math.ceil(ms / 1000);
   if (s < 60) return `${s}s`;
   const m = Math.floor(s / 60);

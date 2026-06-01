@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Plus, Clock, CheckCircle2 } from "lucide-react-native";
 import { useGameStore } from "@/store/gameStore";
+import { useT } from "@/i18n/useT";
 import Card from "@/components/ui/Card";
 import Pill from "@/components/ui/Pill";
 import Button from "@/components/ui/Button";
@@ -15,7 +16,7 @@ import { PRODUCT_TYPES } from "@/data/gameContent";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function formatRemaining(ms) {
-  if (ms <= 0) return "Habis";
+  if (ms <= 0) return "0d";
   const totalSec = Math.ceil(ms / 1000);
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
@@ -24,7 +25,7 @@ function formatRemaining(ms) {
 }
 
 // ── Revenue Lifespan Bar ───────────────────────────────────────────────────
-function RevenueLifeBar({ product, now }) {
+function RevenueLifeBar({ product, now, t }) {
   const { revenueExpiresAt, revenueLifespanSec, launchedAt } = product;
 
   // Fallback for products launched before this feature existed
@@ -72,11 +73,11 @@ function RevenueLifeBar({ product, now }) {
               letterSpacing: 0.5,
             }}
           >
-            {isExpired ? "Revenue Selesai" : "Sisa Waktu Revenue"}
+            {isExpired ? t("products.revenue_done") : t("products.revenue_lifespan")}
           </Text>
         </View>
         <Text style={{ fontSize: 12, fontWeight: "600", color: labelColor }}>
-          {isExpired ? "Rilis produk baru" : formatRemaining(remainingMs)}
+          {isExpired ? t("products.revenue_release_new") : formatRemaining(remainingMs)}
         </Text>
       </View>
 
@@ -102,7 +103,7 @@ function RevenueLifeBar({ product, now }) {
       {/* Expired message */}
       {isExpired ? (
         <Text style={{ fontSize: 12, color: "#9CA3AF" }}>
-          Produk ini tidak lagi menghasilkan revenue. Bangun produk berikutnya.
+          {t("products.revenue_expired_msg")}
         </Text>
       ) : null}
     </View>
@@ -110,7 +111,7 @@ function RevenueLifeBar({ product, now }) {
 }
 
 // ── Product Card ───────────────────────────────────────────────────────────
-function ProductCard({ p, now }) {
+function ProductCard({ p, now, t }) {
   const revenueExpiresAt = p.revenueExpiresAt;
   const isExpired = revenueExpiresAt && now >= revenueExpiresAt;
 
@@ -133,21 +134,21 @@ function ProductCard({ p, now }) {
       >
         <View style={{ flex: 1, gap: 8 }}>
           <View style={{ flexDirection: "row", gap: 6 }}>
-            <Pill label={PRODUCT_TYPES[p.typeId]?.category} variant="outline" />
+            <Pill label={t(PRODUCT_TYPES[p.typeId]?.category)} variant="outline" />
             {isExpired ? (
-              <Pill label="Kedaluwarsa" variant="status" dotColor="#9CA3AF" />
+              <Pill label={t("products.pill_expired")} variant="status" dotColor="#9CA3AF" />
             ) : (
               <Pill label={p.reviews} variant="status" dotColor={reviewDot} />
             )}
           </View>
           <Text style={{ fontSize: 16, fontWeight: "600", color: "#111827" }}>
-            {p.name}
+            {t(p.name)}
           </Text>
         </View>
       </View>
 
       {/* Revenue lifespan bar */}
-      <RevenueLifeBar product={p} now={now} />
+      <RevenueLifeBar product={p} now={now} t={t} />
 
       {/* Stats */}
       <View
@@ -158,15 +159,15 @@ function ProductCard({ p, now }) {
           paddingTop: 10,
         }}
       >
-        <StatRow label="Pengguna" value={formatNumber(p.users)} />
-        <StatRow label="Revenue total" value={formatCurrency(p.totalRevenue)} />
+        <StatRow label={t("products.stat_users")} value={formatNumber(p.users)} />
+        <StatRow label={t("products.stat_revenue")} value={formatCurrency(p.totalRevenue)} />
         <StatRow
           label={
             <TooltipWord
               termId="model_quality"
               style={{ color: "#6B7280", fontSize: 14 }}
             >
-              Kualitas model
+              {t("products.stat_quality")}
             </TooltipWord>
           }
           value={formatPercent(p.qualityScore)}
@@ -177,7 +178,7 @@ function ProductCard({ p, now }) {
               termId="hallucination"
               style={{ color: "#6B7280", fontSize: 14 }}
             >
-              Halusinasi
+              {t("products.stat_hallucination")}
             </TooltipWord>
           }
           value={formatPercent(p.hallucinationRisk)}
@@ -189,7 +190,7 @@ function ProductCard({ p, now }) {
               termId="bias"
               style={{ color: "#6B7280", fontSize: 14 }}
             >
-              Bias
+              {t("products.stat_bias")}
             </TooltipWord>
           }
           value={formatPercent(p.biasRisk)}
@@ -204,6 +205,7 @@ function ProductCard({ p, now }) {
 export default function ProductsTab() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const t = useT();
   const liveProducts = useGameStore((s) => s.liveProducts);
   const currentDraft = useGameStore((s) => s.currentDraft);
 
@@ -247,16 +249,16 @@ export default function ProductsTab() {
                 letterSpacing: -0.5,
               }}
             >
-              Produk
+              {t("products.header_title")}
             </Text>
             <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
-              {activeCount} aktif
-              {expiredCount > 0 ? ` · ${expiredCount} kedaluwarsa` : ""}
-              {currentDraft ? " · 1 draft" : ""}
+              {t("products.counter_active", { count: activeCount })}
+              {expiredCount > 0 ? ` · ${t("products.counter_expired", { count: expiredCount })}` : ""}
+              {currentDraft ? ` · ${t("products.counter_draft")}` : ""}
             </Text>
           </View>
           <Button
-            label="Baru"
+            label={t("common.new")}
             size="sm"
             icon={<Plus size={14} color="#FFFFFF" />}
             onPress={() => router.push("/product-flow")}
@@ -287,14 +289,14 @@ export default function ProductsTab() {
                     marginTop: 4,
                   }}
                 >
-                  {PRODUCT_TYPES[currentDraft.typeId]?.name}
+                  {t(PRODUCT_TYPES[currentDraft.typeId]?.name)}
                 </Text>
               </View>
               <Pill label={currentDraft.stage} variant="soft" />
             </View>
             <View style={{ marginTop: 12 }}>
               <StatRow
-                label="Progress training"
+                label={t("products.stat_progress")}
                 value={formatPercent(currentDraft.trainingProgress)}
               />
               <StatRow
@@ -303,19 +305,19 @@ export default function ProductsTab() {
                     termId="epoch"
                     style={{ color: "#6B7280", fontSize: 14 }}
                   >
-                    Epochs
+                    {t("products.stat_epochs")}
                   </TooltipWord>
                 }
                 value={`${currentDraft.epochs}`}
               />
               <StatRow
-                label="Cash terpakai"
+                label={t("products.stat_cash_spent")}
                 value={formatCurrency(currentDraft.cashSpent)}
               />
             </View>
             <View style={{ marginTop: 12 }}>
               <Button
-                label="Lanjutkan draft"
+                label={t("products.draft_continue")}
                 onPress={() => router.push("/product-flow")}
                 fullWidth
               />
@@ -327,7 +329,7 @@ export default function ProductsTab() {
         {liveProducts.length === 0 ? (
           <Card>
             <Text style={{ fontSize: 16, fontWeight: "600", color: "#111827" }}>
-              Belum ada produk live
+              {t("products.empty_title")}
             </Text>
             <Text
               style={{
@@ -337,18 +339,17 @@ export default function ProductsTab() {
                 marginBottom: 12,
               }}
             >
-              Rilis produk AI pertamamu untuk mulai menghasilkan pengguna dan
-              revenue.
+              {t("products.empty_subtitle")}
             </Text>
             <Button
-              label="Mulai produk baru"
+              label={t("products.empty_cta")}
               onPress={() => router.push("/product-flow")}
               icon={<Plus size={16} color="#FFFFFF" />}
               fullWidth
             />
           </Card>
         ) : (
-          liveProducts.map((p) => <ProductCard key={p.id} p={p} now={now} />)
+          liveProducts.map((p) => <ProductCard key={p.id} p={p} now={now} t={t} />)
         )}
       </ScrollView>
     </View>

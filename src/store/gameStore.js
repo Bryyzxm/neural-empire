@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { tFor } from "@/i18n/useT";
 import {
   SCHEMA_VERSION,
   INITIAL_STATE,
@@ -65,6 +66,7 @@ const defaultGameState = () => ({
   ...INITIAL_STATE,
   companyName: "Neural Empire Inc.",
   founded: Date.now(),
+  language: "id", // "id" | "en" — chosen at onboarding, persisted across runs
   onboardingComplete: false,
   // products that are live in the market
   liveProducts: [],
@@ -111,6 +113,7 @@ export const useGameStore = create((set, get) => ({
         competitors: parsed.competitors || createInitialCompetitors(),
         activeCrisis: parsed.activeCrisis || null,
         lastCrisisAt: parsed.lastCrisisAt || Date.now(),
+        language: parsed.language === "en" ? "en" : "id",
         hydrated: true,
       });
     } catch (err) {
@@ -132,6 +135,7 @@ export const useGameStore = create((set, get) => ({
         researchPoints: state.researchPoints,
         companyName: state.companyName,
         founded: state.founded,
+        language: state.language,
         onboardingComplete: state.onboardingComplete,
         liveProducts: state.liveProducts,
         currentDraft: state.currentDraft,
@@ -171,6 +175,12 @@ export const useGameStore = create((set, get) => ({
     get().persist();
   },
 
+  setLanguage: (lang) => {
+    if (lang !== "id" && lang !== "en") return;
+    set({ language: lang });
+    get().persist();
+  },
+
   // ---------- Product Lifecycle ----------
   startDraft: (productTypeId) => {
     const productType = PRODUCT_TYPES[productTypeId];
@@ -203,14 +213,14 @@ export const useGameStore = create((set, get) => ({
   purchaseData: (tierId) => {
     const state = get();
     const draft = state.currentDraft;
-    if (!draft) return { ok: false, error: "Tidak ada draft aktif." };
+    if (!draft) return { ok: false, error: tFor(get().language, "error.no_draft") };
     const productType = PRODUCT_TYPES[draft.typeId];
     const tier = DATA_QUALITY_TIERS[tierId];
     if (!productType || !tier)
-      return { ok: false, error: "Pilihan tidak valid." };
+      return { ok: false, error: tFor(get().language, "error.invalid_choice") };
     const cost = Math.round(productType.baseDataCost * tier.costMultiplier);
     if (state.cash < cost) {
-      return { ok: false, error: "Cash tidak cukup untuk membeli data." };
+      return { ok: false, error: tFor(get().language, "error.cash_low_data") };
     }
     set({
       cash: state.cash - cost,
@@ -238,12 +248,12 @@ export const useGameStore = create((set, get) => ({
     const state = get();
     const draft = state.currentDraft;
     if (!draft || draft.stage !== "training") {
-      return { ok: false, error: "Tidak dalam tahap training." };
+      return { ok: false, error: tFor(get().language, "error.not_training") };
     }
     const productType = PRODUCT_TYPES[draft.typeId];
     const tier = DATA_QUALITY_TIERS[draft.dataTierId];
     if (!productType || !tier)
-      return { ok: false, error: "State draft tidak valid." };
+      return { ok: false, error: tFor(get().language, "error.invalid_draft") };
 
     const fx = computeUpgradeEffects(state.purchasedUpgrades);
     const efficiency = Math.min(0.8, fx.computeEfficiency);
@@ -258,7 +268,7 @@ export const useGameStore = create((set, get) => ({
     const computeCost = Math.max(1, Math.round(baseComputeCost * computeMult));
 
     if (state.compute < computeCost) {
-      return { ok: false, error: "Compute tidak cukup. Upgrade kapasitas." };
+      return { ok: false, error: tFor(get().language, "error.cash_low", { context: "compute" }) };
     }
 
     const newEpochs = draft.epochs + 1;
@@ -394,7 +404,7 @@ export const useGameStore = create((set, get) => ({
     const state = get();
     const draft = state.currentDraft;
     if (!draft || draft.stage !== "eval") {
-      return { ok: false, error: "Produk belum siap launch." };
+      return { ok: false, error: tFor(get().language, "error.not_ready_launch") };
     }
     const productType = PRODUCT_TYPES[draft.typeId];
     const fx = computeUpgradeEffects(state.purchasedUpgrades);
@@ -443,7 +453,11 @@ export const useGameStore = create((set, get) => ({
           id: generateId(),
           timestamp: Date.now(),
           type: "launch",
-          message: `Produk "${productType.name}" diluncurkan dengan ${initialUsers} pengguna awal.`,
+          title: tFor(get().language, "event.launch_title"),
+          message: tFor(get().language, "event.launch_message", {
+            name: tFor(get().language, productType.name),
+            users: initialUsers,
+          }),
           tone: launchScore > 0.6 ? "positive" : "neutral",
         },
         ...state.eventLog,
@@ -460,7 +474,7 @@ export const useGameStore = create((set, get) => ({
   buyCompute: (amount = 10) => {
     const state = get();
     const cost = amount * 80;
-    if (state.cash < cost) return { ok: false, error: "Cash tidak cukup." };
+    if (state.cash < cost) return { ok: false, error: tFor(get().language, "error.cash_low") };
     set({
       cash: state.cash - cost,
       computeCapacity: state.computeCapacity + amount,
@@ -477,7 +491,7 @@ export const useGameStore = create((set, get) => ({
     const cost = Math.round(
       baseCost * (1 - Math.min(0.7, fx.refillCostReduction)),
     );
-    if (state.cash < cost) return { ok: false, error: "Cash tidak cukup." };
+    if (state.cash < cost) return { ok: false, error: tFor(get().language, "error.cash_low") };
     set({ cash: state.cash - cost, compute: state.computeCapacity });
     get().persist();
     return { ok: true };
@@ -492,7 +506,8 @@ export const useGameStore = create((set, get) => ({
           id: generateId(),
           timestamp: Date.now(),
           type: "boost",
-          message: "Boost compute +10 diterima dari ad reward.",
+          title: tFor(get().language, "event.ad_boost_title"),
+          message: tFor(get().language, "event.ad_boost_message"),
           tone: "positive",
         },
         ...state.eventLog,
@@ -504,9 +519,9 @@ export const useGameStore = create((set, get) => ({
   resolveCrisis: (choiceId) => {
     const state = get();
     const crisis = state.activeCrisis;
-    if (!crisis) return { ok: false, error: "Tidak ada crisis aktif." };
+    if (!crisis) return { ok: false, error: tFor(get().language, "error.no_crisis") };
     const choice = crisis.choices.find((c) => c.id === choiceId);
-    if (!choice) return { ok: false, error: "Pilihan crisis tidak valid." };
+    if (!choice) return { ok: false, error: tFor(get().language, "error.invalid_crisis") };
     const effect = choice.effect || {};
 
     let competitors = state.competitors || createInitialCompetitors();
@@ -532,8 +547,11 @@ export const useGameStore = create((set, get) => ({
           id: generateId(),
           timestamp: Date.now(),
           type: "crisis_resolved",
-          title: `${crisis.title} — ${choice.label}`,
-          message: choice.result,
+          title: tFor(get().language, "event.crisis_resolved_title", {
+            name: tFor(get().language, crisis.title),
+            choice: tFor(get().language, choice.label),
+          }),
+          message: tFor(get().language, choice.result),
           tone: (effect.reputationDelta || 0) >= 0 ? "positive" : "negative",
         },
         ...state.eventLog,
@@ -547,19 +565,19 @@ export const useGameStore = create((set, get) => ({
   startResearch: (nodeId) => {
     const state = get();
     const node = RESEARCH_NODES[nodeId];
-    if (!node) return { ok: false, error: "Node riset tidak valid." };
+    if (!node) return { ok: false, error: tFor(get().language, "error.invalid_research") };
     if (state.activeResearch)
-      return { ok: false, error: "Sudah ada riset berjalan." };
+      return { ok: false, error: tFor(get().language, "error.research_running") };
     if (state.unlockedResearch.includes(nodeId)) {
-      return { ok: false, error: "Riset sudah selesai." };
+      return { ok: false, error: tFor(get().language, "error.research_done") };
     }
     for (const dep of node.requires) {
       if (!state.unlockedResearch.includes(dep)) {
-        return { ok: false, error: "Prasyarat belum terpenuhi." };
+        return { ok: false, error: tFor(get().language, "error.prereq_missing") };
       }
     }
     if (state.cash < node.cost)
-      return { ok: false, error: "Cash tidak cukup." };
+      return { ok: false, error: tFor(get().language, "error.cash_low") };
     set({
       cash: state.cash - node.cost,
       activeResearch: {
@@ -576,14 +594,14 @@ export const useGameStore = create((set, get) => ({
   purchaseUpgrade: (upgradeId) => {
     const state = get();
     const def = STAFF_UPGRADES[upgradeId];
-    if (!def) return { ok: false, error: "Upgrade tidak valid." };
+    if (!def) return { ok: false, error: tFor(get().language, "error.invalid_upgrade") };
     const currentLevel = state.purchasedUpgrades[upgradeId] || 0;
     if (currentLevel >= def.maxLevel)
-      return { ok: false, error: "Sudah level maksimal." };
+      return { ok: false, error: tFor(get().language, "error.upgrade_maxed") };
     const nextTier = def.tiers[currentLevel];
-    if (!nextTier) return { ok: false, error: "Tier tidak ditemukan." };
+    if (!nextTier) return { ok: false, error: tFor(get().language, "error.tier_missing") };
     if (state.cash < nextTier.cost)
-      return { ok: false, error: "Cash tidak cukup." };
+      return { ok: false, error: tFor(get().language, "error.cash_low") };
     const newPurchasedUpgrades = {
       ...state.purchasedUpgrades,
       [upgradeId]: currentLevel + 1,
@@ -608,8 +626,10 @@ export const useGameStore = create((set, get) => ({
           id: generateId(),
           timestamp: Date.now(),
           type: "upgrade",
-          title: "Rekrutmen Berhasil",
-          message: `${nextTier.label} berhasil bergabung ke tim.`,
+          title: tFor(get().language, "event.recruit_title"),
+          message: tFor(get().language, "event.recruit_message", {
+            name: tFor(get().language, nextTier.label),
+          }),
           tone: "positive",
         },
         ...state.eventLog,
@@ -716,8 +736,13 @@ export const useGameStore = create((set, get) => ({
             id: generateId(),
             timestamp: now,
             type: "competitor",
-            title: `${c.name} launch produk baru`,
-            message: `${c.name} menambah ${launchUsers} users. Market share makin ketat.`,
+            title: tFor(get().language, "event.competitor_launch_title", {
+              name: tFor(get().language, c.name),
+            }),
+            message: tFor(get().language, "event.competitor_launch_message", {
+              name: tFor(get().language, c.name),
+              users: launchUsers,
+            }),
             tone: "neutral",
           },
           ...eventLog,
@@ -744,8 +769,10 @@ export const useGameStore = create((set, get) => ({
             id: generateId(),
             timestamp: now,
             type: "crisis",
-            title: `Crisis: ${pick.title}`,
-            message: pick.description,
+            title: tFor(get().language, "event.market_crisis_title", {
+              name: tFor(get().language, pick.title),
+            }),
+            message: tFor(get().language, pick.description),
             tone: "negative",
           },
           ...eventLog,
@@ -763,8 +790,10 @@ export const useGameStore = create((set, get) => ({
           id: generateId(),
           timestamp: now,
           type: "research",
-          title: "Riset Selesai",
-          message: `Riset "${RESEARCH_NODES[activeResearch.nodeId]?.name}" selesai.`,
+          title: tFor(get().language, "event.research_complete_title"),
+          message: tFor(get().language, "event.research_complete_message", {
+            name: tFor(get().language, RESEARCH_NODES[activeResearch.nodeId]?.name),
+          }),
           tone: "positive",
         },
         ...eventLog,
@@ -794,8 +823,8 @@ export const useGameStore = create((set, get) => ({
           timestamp: now,
           type: "event",
           eventId: chosen.id,
-          title: chosen.title,
-          message: chosen.description,
+          title: tFor(get().language, chosen.title),
+          message: tFor(get().language, chosen.description),
           tone: chosen.tone,
         },
         ...eventLog,

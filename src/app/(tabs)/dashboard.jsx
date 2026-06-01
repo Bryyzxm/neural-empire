@@ -11,6 +11,7 @@ import {
   Rocket,
 } from "lucide-react-native";
 import { useGameStore } from "@/store/gameStore";
+import { useT } from "@/i18n/useT";
 import Card from "@/components/ui/Card";
 import Pill from "@/components/ui/Pill";
 import Button from "@/components/ui/Button";
@@ -22,6 +23,7 @@ import { COMPANY_STAGES } from "@/data/gameContent";
 export default function Dashboard() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const t = useT();
   const cash = useGameStore((s) => s.cash);
   const compute = useGameStore((s) => s.compute);
   const computeCapacity = useGameStore((s) => s.computeCapacity);
@@ -57,7 +59,7 @@ export default function Dashboard() {
       >
         {/* Header */}
         <View style={{ marginBottom: 4 }}>
-          <Pill label={stage.name} variant="outline" dotColor="#22C55E" />
+          <Pill label={t(stage.name)} variant="outline" dotColor="#22C55E" />
           <Text
             style={{
               fontSize: 26,
@@ -71,7 +73,7 @@ export default function Dashboard() {
             {companyName}
           </Text>
           <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
-            Dashboard founder · MVP 0.1.0
+            {t("dashboard.header_subtitle")}
           </Text>
         </View>
 
@@ -79,24 +81,24 @@ export default function Dashboard() {
         <View style={{ flexDirection: "row", gap: 10 }}>
           <KpiCard
             icon={<DollarSign size={14} color="#6B7280" />}
-            label="Cash"
+            label={t("dashboard.kpi_cash")}
             value={formatCurrency(cash)}
           />
           <KpiCard
             icon={<Cpu size={14} color="#6B7280" />}
-            label="Compute"
+            label={t("dashboard.kpi_compute")}
             value={`${Math.round(compute)} / ${computeCapacity}`}
           />
         </View>
         <View style={{ flexDirection: "row", gap: 10 }}>
           <KpiCard
             icon={<Users size={14} color="#6B7280" />}
-            label="Users"
+            label={t("dashboard.kpi_users")}
             value={formatNumber(totalUsers)}
           />
           <KpiCard
             icon={<Activity size={14} color="#6B7280" />}
-            label="Revenue"
+            label={t("dashboard.kpi_revenue")}
             value={formatCurrency(totalRevenue)}
           />
         </View>
@@ -111,10 +113,10 @@ export default function Dashboard() {
               marginBottom: 2,
             }}
           >
-            Company Health
+            {t("dashboard.health_title")}
           </Text>
           <Text style={{ fontSize: 13, color: "#6B7280", marginBottom: 16 }}>
-            Indikator kesehatan operasional.
+            {t("dashboard.health_subtitle")}
           </Text>
           <View
             style={{
@@ -125,17 +127,17 @@ export default function Dashboard() {
             <RingStat
               value={computePct}
               label={formatPercent(computePct)}
-              sublabel="compute"
+              sublabel={t("dashboard.ring_compute")}
             />
             <RingStat
               value={reputationPct}
               label={Math.round(reputation).toString()}
-              sublabel="reputasi"
+              sublabel={t("dashboard.ring_reputation")}
             />
             <RingStat
               value={Math.min(1, liveProducts.length / 5)}
               label={liveProducts.length.toString()}
-              sublabel="produk"
+              sublabel={t("dashboard.ring_products")}
             />
           </View>
         </Card>
@@ -154,7 +156,7 @@ export default function Dashboard() {
                 <Text
                   style={{ fontSize: 11, color: "#6B7280", fontWeight: "500" }}
                 >
-                  TARGET LANJUTAN
+                  {t("dashboard.next_target_label")}
                 </Text>
                 <Text
                   style={{
@@ -164,18 +166,18 @@ export default function Dashboard() {
                     marginTop: 4,
                   }}
                 >
-                  {nextStage.name}
+                  {t(nextStage.name)}
                 </Text>
               </View>
-              <Pill label="Naik tahap" variant="soft" />
+              <Pill label={t("dashboard.next_target_pill")} variant="soft" />
             </View>
             <View style={{ marginTop: 10 }}>
               <StatRow
-                label="Reputasi"
+                label={t("dashboard.row_reputation")}
                 value={`${Math.round(reputation)} / ${nextStage.minReputation}`}
               />
               <StatRow
-                label="Total revenue"
+                label={t("dashboard.row_total_revenue")}
                 value={`${formatCurrency(totalRevenue)} / ${formatCurrency(
                   nextStage.minRevenue,
                 )}`}
@@ -187,7 +189,7 @@ export default function Dashboard() {
         {/* CTA */}
         <Card>
           <Text style={{ fontSize: 16, fontWeight: "600", color: "#111827" }}>
-            Produk berikutnya
+            {t("dashboard.cta_title")}
           </Text>
           <Text
             style={{
@@ -198,11 +200,15 @@ export default function Dashboard() {
             }}
           >
             {currentDraft
-              ? "Anda memiliki produk yang sedang dikerjakan."
-              : "Bangun produk AI baru dan rilis ke pasar."}
+              ? t("dashboard.cta_draft_subtitle")
+              : t("dashboard.cta_empty_subtitle")}
           </Text>
           <Button
-            label={currentDraft ? "Lanjutkan draft" : "Mulai produk baru"}
+            label={
+              currentDraft
+                ? t("dashboard.cta_continue_draft")
+                : t("dashboard.cta_new_product")
+            }
             icon={
               currentDraft ? (
                 <Rocket size={16} color="#FFFFFF" />
@@ -218,7 +224,7 @@ export default function Dashboard() {
         {/* Crisis */}
         {activeCrisis ? (
           <Card>
-            <Pill label="CRISIS ACTIVE" variant="status" dotColor="#EF4444" />
+            <Pill label={t("dashboard.crisis_pill")} variant="status" dotColor="#EF4444" />
             <Text style={{ fontSize: 18, fontWeight: "700", color: "#111827", marginTop: 8 }}>
               {activeCrisis.title}
             </Text>
@@ -239,7 +245,7 @@ export default function Dashboard() {
                   })}
                 >
                   <Text style={{ fontSize: 14, fontWeight: "600", color: "#991B1B" }}>
-                    {choice.label}
+                    {t(choice.label)}
                   </Text>
                 </Pressable>
               ))}
@@ -250,10 +256,10 @@ export default function Dashboard() {
         {/* Competitors */}
         <Card>
           <Text style={{ fontSize: 16, fontWeight: "600", color: "#111827", marginBottom: 2 }}>
-            Competitor Radar
+            {t("dashboard.competitor_title")}
           </Text>
           <Text style={{ fontSize: 13, color: "#6B7280", marginBottom: 12 }}>
-            Rival AI startup ikut berebut users dan market attention.
+            {t("dashboard.competitor_subtitle")}
           </Text>
           {competitors.map((c) => {
             const totalMarket = totalUsers + competitors.reduce((sum, x) => sum + (x.users || 0), 0);
@@ -261,11 +267,11 @@ export default function Dashboard() {
             return (
               <View key={c.id} style={{ marginBottom: 12 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
-                  <Text style={{ fontSize: 14, fontWeight: "600", color: "#111827" }}>{c.name}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: "#111827" }}>{t(c.name)}</Text>
                   <Text style={{ fontSize: 12, color: "#6B7280" }}>{formatPercent(share)}</Text>
                 </View>
                 <Text style={{ fontSize: 12, color: "#6B7280", marginBottom: 6 }}>
-                  {c.strategy} · {formatNumber(c.users || 0)} users · {c.productsLaunched} produk
+                  {t(c.strategy)} · {formatNumber(c.users || 0)} {t("dashboard.competitor_users")} · {c.productsLaunched} {t("dashboard.competitor_products")}
                 </Text>
                 <View style={{ height: 6, borderRadius: 999, backgroundColor: "#F3F4F6", overflow: "hidden" }}>
                   <View style={{ width: `${Math.min(100, share * 100)}%`, height: 6, backgroundColor: c.color }} />
@@ -285,17 +291,16 @@ export default function Dashboard() {
               marginBottom: 2,
             }}
           >
-            News Feed
+            {t("dashboard.news_title")}
           </Text>
           <Text style={{ fontSize: 13, color: "#6B7280", marginBottom: 12 }}>
-            Peristiwa pasar dan keputusan terakhir.
+            {t("dashboard.news_subtitle")}
           </Text>
           {eventLog.length === 0 ? (
             <Text
               style={{ fontSize: 13, color: "#9CA3AF", paddingVertical: 8 }}
             >
-              Belum ada peristiwa. Mulai produk pertamamu untuk memicu aktivitas
-              pasar.
+              {t("dashboard.news_empty")}
             </Text>
           ) : (
             eventLog.slice(0, 6).map((e) => (
@@ -334,10 +339,10 @@ export default function Dashboard() {
                   >
                     {e.title ||
                       (e.type === "launch"
-                        ? "Product Launch"
+                        ? t("dashboard.news_type_launch")
                         : e.type === "research"
-                          ? "Riset Selesai"
-                          : "Update")}
+                          ? t("dashboard.news_type_research")
+                          : t("dashboard.news_type_update"))}
                   </Text>
                   <Text
                     style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}

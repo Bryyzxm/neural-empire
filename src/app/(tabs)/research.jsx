@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Atom, Lock, Check } from "lucide-react-native";
 import { useGameStore } from "@/store/gameStore";
+import { useT } from "@/i18n/useT";
 import Card from "@/components/ui/Card";
 import Pill from "@/components/ui/Pill";
 import Button from "@/components/ui/Button";
@@ -23,6 +24,7 @@ const NODE_CONCEPT_MAP = {
 
 export default function ResearchTab() {
   const insets = useSafeAreaInsets();
+  const t = useT();
   const cash = useGameStore((s) => s.cash);
   const unlockedResearch = useGameStore((s) => s.unlockedResearch);
   const activeResearch = useGameStore((s) => s.activeResearch);
@@ -39,7 +41,7 @@ export default function ResearchTab() {
   const handleStart = (nodeId) => {
     const res = startResearch(nodeId);
     if (!res.ok) {
-      Alert.alert("Tidak bisa memulai", res.error);
+      Alert.alert(t("research.alert_cant_start_title"), res.error);
     }
   };
 
@@ -55,7 +57,7 @@ export default function ResearchTab() {
         }}
       >
         <View>
-          <Pill label="Research Tree" variant="soft" />
+          <Pill label={t("research.header_pill")} variant="soft" />
           <Text
             style={{
               fontSize: 26,
@@ -65,17 +67,17 @@ export default function ResearchTab() {
               marginTop: 8,
             }}
           >
-            Riset & Unlock
+            {t("research.header_title")}
           </Text>
           <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
-            Buka kemampuan produk AI baru dengan riset.
+            {t("research.header_subtitle")}
           </Text>
         </View>
 
         {activeResearch ? (
           <Card>
             <Text style={{ fontSize: 11, color: "#6B7280", fontWeight: "500" }}>
-              SEDANG BERLANGSUNG
+              {t("research.label_in_progress")}
             </Text>
             <Text
               style={{
@@ -85,11 +87,11 @@ export default function ResearchTab() {
                 marginTop: 4,
               }}
             >
-              {RESEARCH_NODES[activeResearch.nodeId]?.name}
+              {t(RESEARCH_NODES[activeResearch.nodeId]?.name)}
             </Text>
             <View style={{ marginTop: 10 }}>
               <StatRow
-                label="Sisa waktu"
+                label={t("research.label_time_left")}
                 value={formatDuration(activeResearch.completesAt - now)}
               />
             </View>
@@ -117,12 +119,12 @@ export default function ResearchTab() {
                   <Pill
                     label={
                       isUnlocked
-                        ? "Selesai"
+                        ? t("research.status_done")
                         : isActive
-                          ? "Berjalan"
+                          ? t("research.status_running")
                           : missingDep
-                            ? "Terkunci"
-                            : "Tersedia"
+                            ? t("research.status_locked")
+                            : t("research.status_available")
                     }
                     variant="status"
                     dotColor={
@@ -143,7 +145,7 @@ export default function ResearchTab() {
                       marginTop: 8,
                     }}
                   >
-                    {n.name}
+                    {t(n.name)}
                   </Text>
                   <View
                     style={{
@@ -155,14 +157,14 @@ export default function ResearchTab() {
                     }}
                   >
                     <Text style={{ fontSize: 13, color: "#6B7280" }}>
-                      {n.description}
+                      {t(n.description)}
                     </Text>
                     {conceptTermId ? (
                       <TooltipWord
                         termId={conceptTermId}
                         style={{ fontSize: 12 }}
                       >
-                        Apa itu {TOOLTIPS[conceptTermId]?.term}?
+                        {t("research.what_is", { term: t(TOOLTIPS[conceptTermId]?.term) })}
                       </TooltipWord>
                     ) : null}
                   </View>
@@ -176,16 +178,16 @@ export default function ResearchTab() {
                 )}
               </View>
               <View style={{ marginTop: 10 }}>
-                <StatRow label="Biaya" value={formatCurrency(n.cost)} />
+                <StatRow label={t("research.label_cost")} value={formatCurrency(n.cost)} />
                 <StatRow
-                  label="Durasi"
+                  label={t("research.label_duration")}
                   value={formatDuration(n.duration * 1000)}
                 />
                 {n.requires.length > 0 ? (
                   <StatRow
-                    label="Prasyarat"
+                    label={t("research.label_prereq")}
                     value={n.requires
-                      .map((d) => RESEARCH_NODES[d]?.name)
+                      .map((d) => t(RESEARCH_NODES[d]?.name))
                       .join(", ")}
                   />
                 ) : null}
@@ -195,10 +197,10 @@ export default function ResearchTab() {
                   <Button
                     label={
                       missingDep
-                        ? "Prasyarat belum selesai"
+                        ? t("research.btn_prereq_locked")
                         : !canAfford
-                          ? "Cash tidak cukup"
-                          : "Mulai riset"
+                          ? t("research.btn_cash_low")
+                          : t("research.btn_start")
                     }
                     onPress={() => handleStart(n.id)}
                     disabled={!!missingDep || !canAfford || !!activeResearch}
@@ -213,7 +215,7 @@ export default function ResearchTab() {
         {/* ── Glossary card — all tappable AI terms ─────────────────────── */}
         <Card>
           <Text style={{ fontSize: 15, fontWeight: "600", color: "#111827" }}>
-            Glosarium AI
+            {t("research.glossary_title")}
           </Text>
           <Text
             style={{
@@ -223,15 +225,15 @@ export default function ResearchTab() {
               marginBottom: 12,
             }}
           >
-            Tap istilah untuk melihat definisi dan analogi.
+            {t("research.glossary_subtitle")}
           </Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {Object.values(TOOLTIPS).map((t) => {
-              const cat = TOOLTIP_CATEGORIES[t.category];
+            {Object.values(TOOLTIPS).map((tt) => {
+              const cat = TOOLTIP_CATEGORIES[tt.category];
               return (
                 <TooltipWord
-                  key={t.id}
-                  termId={t.id}
+                  key={tt.id}
+                  termId={tt.id}
                   style={{
                     fontSize: 13,
                     fontWeight: "500",
@@ -244,7 +246,7 @@ export default function ResearchTab() {
                     textDecorationLine: "none",
                   }}
                 >
-                  {t.term}
+                  {t(tt.term)}
                 </TooltipWord>
               );
             })}
