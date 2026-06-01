@@ -14,6 +14,16 @@
 				"buildType": "apk"
 			}
 		},
+		"preview-arm64": {
+			"distribution": "internal",
+			"android": {
+				"buildType": "apk",
+				"gradleCommand": ":app:assembleRelease"
+			},
+			"env": {
+				"ANDROID_ABI_FILTER": "arm64-v8a"
+			}
+		},
 		"production": {
 			"autoIncrement": true,
 			"android": {

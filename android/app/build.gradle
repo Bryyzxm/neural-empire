@@ -137,6 +137,16 @@ android {
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
     }
+    // ABI splits — generates per-architecture APKs (~30-40MB each)
+    // instead of a fat universal APK (~80-100MB).
+    splits {
+        abi {
+            enable true
+            reset()
+            include "arm64-v8a", "armeabi-v7a"
+            universalApk true
+        }
+    }
 }
 
 // Apply static values from `gradle.properties` to the `android.packagingOptions`

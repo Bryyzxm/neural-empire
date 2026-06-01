@@ -15,12 +15,17 @@
       }
     },
     "android": {
+      "jsEngine": "hermes",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [],
-      "package": "com.bryyzxm.neuralempire"
+      "package": "com.bryyzxm.neuralempire",
+      "splits": {
+        "abi": "enable",
+        "language": "enable"
+      }
     },
     "plugins": [
       [
@@ -42,6 +47,13 @@
         {
           "ios": {
             "useFrameworks": "static"
+          },
+          "android": {
+            "enableProguard": true,
+            "enableShrinkResources": true,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
           }
         }
       ],
