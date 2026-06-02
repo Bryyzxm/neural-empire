@@ -3,7 +3,7 @@
     "name": "Neural Empire",
     "slug": "neural-empire",
     "scheme": "neuralempire",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
@@ -22,6 +22,7 @@
       },
       "permissions": [],
       "package": "com.bryyzxm.neuralempire",
+      "versionCode": 2,
       "splits": {
         "abi": "enable",
         "language": "enable"
