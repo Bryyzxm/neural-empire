@@ -1,8 +1,8 @@
-import { View, Text, ScrollView, Pressable, Alert } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert, Linking } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { Play, RotateCcw, Info, Zap, Check } from "lucide-react-native";
+import { Play, RotateCcw, Info, Zap, Check, Heart } from "lucide-react-native";
 import { useGameStore } from "@/store/gameStore";
 import { useT } from "@/i18n/useT";
 import Card from "@/components/ui/Card";
@@ -60,6 +60,10 @@ export default function SettingsTab() {
         },
       ],
     );
+  };
+
+  const handleDonate = () => {
+    Linking.openURL("https://saweria.co/bryyzxm");
   };
 
   return (
@@ -165,6 +169,38 @@ export default function SettingsTab() {
           />
           <StatRow label={t("settings.profile_revenue")} value={formatCurrency(totalRevenue)} />
           <StatRow label={t("settings.profile_users")} value={formatNumber(totalUsers)} />
+        </Card>
+
+        <Card
+          style={{
+            borderColor: "#FCA5A5",
+            backgroundColor: "#FFF7F7",
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Heart size={18} color="#DC2626" fill="#DC2626" />
+            <Text style={{ fontSize: 16, fontWeight: "700", color: "#111827", flex: 1 }}>
+              {t("settings.donate_title")}
+            </Text>
+          </View>
+          <Text
+            style={{
+              fontSize: 13,
+              color: "#6B7280",
+              marginTop: 6,
+              marginBottom: 12,
+              lineHeight: 19,
+            }}
+          >
+            {t("settings.donate_subtitle")}
+          </Text>
+          <Button
+            label={t("settings.donate_cta")}
+            variant="primary"
+            icon={<Heart size={16} color="#FFFFFF" fill="#FFFFFF" />}
+            onPress={handleDonate}
+            fullWidth
+          />
         </Card>
 
         <Card>

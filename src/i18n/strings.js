@@ -179,6 +179,10 @@ export const STRINGS = {
     "settings.profile_founded": "Didirikan",
     "settings.profile_revenue": "Revenue total",
     "settings.profile_users": "Pengguna aktif",
+    "settings.donate_title": "Dukung Neural Empire",
+    "settings.donate_subtitle":
+      "Neural Empire gratis dimainkan. Kalau kamu menikmati gamenya, donasi kecil lewat Saweria sangat membantu pengembangan update, balancing, dan fitur baru berikutnya.",
+    "settings.donate_cta": "Donasi via Saweria",
     "settings.boost_title": "Boost (Simulasi Rewarded Ad)",
     "settings.boost_subtitle":
       "Pratinjau monetisasi non pay-to-win — boost compute opsional.",
@@ -1007,6 +1011,10 @@ export const STRINGS = {
     "settings.profile_founded": "Founded",
     "settings.profile_revenue": "Total revenue",
     "settings.profile_users": "Active users",
+    "settings.donate_title": "Support Neural Empire",
+    "settings.donate_subtitle":
+      "Neural Empire is free to play. If you enjoy the game, a small donation through Saweria helps fund updates, balancing, and new features.",
+    "settings.donate_cta": "Donate via Saweria",
     "settings.boost_title": "Boost (Rewarded Ad Simulation)",
     "settings.boost_subtitle":
       "Non pay-to-win monetization preview — optional compute boost.",
