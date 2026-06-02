@@ -17,7 +17,7 @@ import Pill from "@/components/ui/Pill";
 import Button from "@/components/ui/Button";
 import StatRow from "@/components/ui/StatRow";
 import CircularRing from "@/components/ui/CircularRing";
-import { formatCurrency, formatNumber, formatPercent } from "@/utils/format";
+import { formatCurrency, formatGameDate, formatNumber, formatPercent } from "@/utils/format";
 import { COMPANY_STAGES } from "@/data/gameContent";
 
 export default function Dashboard() {
@@ -31,6 +31,8 @@ export default function Dashboard() {
   const totalRevenue = useGameStore((s) => s.totalRevenue);
   const totalUsers = useGameStore((s) => s.totalUsers);
   const companyName = useGameStore((s) => s.companyName);
+  const gameDateMs = useGameStore((s) => s.gameDateMs);
+  const language = useGameStore((s) => s.language);
   const liveProducts = useGameStore((s) => s.liveProducts);
   const salesHistory = useGameStore((s) => s.salesHistory || []);
   const eventLog = useGameStore((s) => s.eventLog);
@@ -60,7 +62,10 @@ export default function Dashboard() {
       >
         {/* Header */}
         <View style={{ marginBottom: 4 }}>
-          <Pill label={t(stage.name)} variant="outline" dotColor="#22C55E" />
+          <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+            <Pill label={t(stage.name)} variant="outline" dotColor="#22C55E" />
+            <Pill label={formatGameDate(gameDateMs, language)} variant="soft" dotColor="#6366F1" />
+          </View>
           <Text
             style={{
               fontSize: 26,

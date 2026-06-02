@@ -15,11 +15,11 @@ export default function TabsLayout() {
   const tick = useGameStore((s) => s.tick);
   const persist = useGameStore((s) => s.persist);
 
-  // Run economy ticks every 2s while app is open
+  // Run economy ticks frequently; sim clock advances 1 day every 1.5s.
   useEffect(() => {
     const interval = setInterval(() => {
       tick();
-    }, 2000);
+    }, 500);
     const persistInterval = setInterval(() => {
       persist();
     }, 15000);

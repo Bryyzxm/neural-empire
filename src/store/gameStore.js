@@ -15,6 +15,9 @@ import {
 } from "../data/gameContent";
 
 const SAVE_KEY = "@neural_empire/save_v1";
+const GAME_START_DATE_MS = Date.UTC(2026, 0, 1);
+const GAME_DAY_REAL_MS = 1500;
+const REAL_MS_PER_GAME_MS = (24 * 60 * 60 * 1000) / GAME_DAY_REAL_MS;
 
 const generateId = () =>
   `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -84,6 +87,7 @@ const defaultGameState = () => ({
   activeCrisis: null,
   lastCrisisAt: Date.now(),
   lastTick: Date.now(),
+  gameDateMs: GAME_START_DATE_MS,
   schemaVersion: SCHEMA_VERSION,
   // staff / operations
   purchasedUpgrades: {}, // { [upgradeId]: currentLevel }
@@ -115,6 +119,7 @@ export const useGameStore = create((set, get) => ({
         salesHistory: parsed.salesHistory || [],
         activeCrisis: parsed.activeCrisis || null,
         lastCrisisAt: parsed.lastCrisisAt || Date.now(),
+        gameDateMs: parsed.gameDateMs || GAME_START_DATE_MS,
         language: parsed.language === "en" ? "en" : "id",
         hydrated: true,
       });
@@ -149,6 +154,7 @@ export const useGameStore = create((set, get) => ({
         competitors: state.competitors,
         activeCrisis: state.activeCrisis,
         lastCrisisAt: state.lastCrisisAt,
+        gameDateMs: state.gameDateMs,
         purchasedUpgrades: state.purchasedUpgrades,
         lastTick: state.lastTick,
         schemaVersion: SCHEMA_VERSION,
@@ -649,7 +655,10 @@ export const useGameStore = create((set, get) => ({
     const now = Date.now();
     // Cap at 10s — prevents huge catch-up ticks when app is backgrounded
     const deltaSec = Math.min(10, (now - state.lastTick) / 1000);
-    if (deltaSec < 1) return;
+    if (deltaSec < 0.25) return;
+    const gameDateMs =
+      safeNumber(state.gameDateMs, GAME_START_DATE_MS) +
+      deltaSec * 1000 * REAL_MS_PER_GAME_MS;
 
     // Guard: if any core value is NaN (corrupted save), start from safe defaults
     let cash = isNaN(state.cash) ? 0 : state.cash;
@@ -875,6 +884,7 @@ export const useGameStore = create((set, get) => ({
       lastCrisisAt,
       eventLog,
       reputation: isNaN(reputation) ? 10 : reputation,
+      gameDateMs,
       lastTick: now,
     });
   },
