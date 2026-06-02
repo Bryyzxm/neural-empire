@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
 import { useEffect } from "react";
+import { Platform } from "react-native";
 import {
   LayoutDashboard,
   Boxes,
@@ -33,15 +34,28 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
           borderTopWidth: 1,
           borderColor: "#E5E7EB",
+          height: Platform.OS === "android" ? 64 : undefined,
           paddingTop: 4,
+          paddingBottom: Platform.OS === "android" ? 6 : undefined,
+        },
+        tabBarItemStyle: {
+          minWidth: 0,
+          paddingHorizontal: 0,
         },
         tabBarActiveTintColor: "#111827",
         tabBarInactiveTintColor: "#6B7280",
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "500" },
+        tabBarLabelPosition: "below-icon",
+        tabBarLabelStyle: {
+          fontSize: 10,
+          lineHeight: 12,
+          fontWeight: "500",
+          maxWidth: "100%",
+        },
       }}
     >
       <Tabs.Screen
