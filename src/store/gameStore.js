@@ -427,25 +427,30 @@ export const useGameStore = create((set, get) => ({
     const reputationDelta = Math.round(
       launchScore * 12 - draft.hallucinationRisk * 8,
     );
-    const baseChurn = 0.015 + draft.hallucinationRisk * 0.04; // fraction of users lost per real-world minute
+    const baseChurn = 0.015 + draft.hallucinationRisk * 0.04; // fraction of users lost per 30 game days
     const churnRate = Math.max(0.001, baseChurn - fx.churnReduction);
+    const gameDateMs = safeNumber(state.gameDateMs, GAME_START_DATE_MS);
+    const productLifespanGameMs =
+      (productType.revenueLifespanSec * 1000 * REAL_MS_PER_GAME_MS);
     const live = {
       id: draft.id,
       typeId: draft.typeId,
       name: productType.name,
       launchedAt: Date.now(),
+      launchedGameDateMs: gameDateMs,
       qualityScore: draft.qualityScore,
       hallucinationRisk: draft.hallucinationRisk,
       biasRisk: draft.biasRisk,
       users: initialUsers,
-      // revenuePerTick = $/second. Formula: users × $/user/min ÷ 60
-      revenuePerTick: (initialUsers * productType.baseRevenuePerUser) / 60,
+      // revenuePerTick = $/game day. Calendar drives revenue growth.
+      revenuePerTick: initialUsers * productType.baseRevenuePerUser,
       totalRevenue: 0,
       salesHistory: [{ timestamp: Date.now(), revenue: 0, users: initialUsers }],
-      churnRate, // fraction of users lost per real-world minute
-      // revenue window — product stops earning after this timestamp
+      churnRate, // fraction of users lost per 30 game days
+      // revenue window — product stops earning after this game-date timestamp
       revenueLifespanSec: productType.revenueLifespanSec,
       revenueExpiresAt: Date.now() + productType.revenueLifespanSec * 1000,
+      revenueExpiresGameDateMs: gameDateMs + productLifespanGameMs,
       reviews:
         launchScore > 0.6
           ? "positive"
@@ -656,9 +661,10 @@ export const useGameStore = create((set, get) => ({
     // Cap at 10s — prevents huge catch-up ticks when app is backgrounded
     const deltaSec = Math.min(10, (now - state.lastTick) / 1000);
     if (deltaSec < 0.25) return;
-    const gameDateMs =
-      safeNumber(state.gameDateMs, GAME_START_DATE_MS) +
-      deltaSec * 1000 * REAL_MS_PER_GAME_MS;
+    const prevGameDateMs = safeNumber(state.gameDateMs, GAME_START_DATE_MS);
+    const gameDeltaMs = deltaSec * 1000 * REAL_MS_PER_GAME_MS;
+    const gameDaysDelta = gameDeltaMs / (24 * 60 * 60 * 1000);
+    const gameDateMs = prevGameDateMs + gameDeltaMs;
 
     // Guard: if any core value is NaN (corrupted save), start from safe defaults
     let cash = isNaN(state.cash) ? 0 : state.cash;
@@ -702,12 +708,15 @@ export const useGameStore = create((set, get) => ({
             ? 0
             : p.revenuePerTick;
 
-        // Only earn if the product's revenue window is still open
-        const revenueActive = !p.revenueExpiresAt || now < p.revenueExpiresAt;
-        const earned = revenueActive ? safeRpt * deltaSec * revenueMult : 0;
+        // Only earn if the product's game-date revenue window is still open.
+        // Legacy saves fallback to real-time expiry.
+        const revenueActive = p.revenueExpiresGameDateMs
+          ? gameDateMs < p.revenueExpiresGameDateMs
+          : !p.revenueExpiresAt || now < p.revenueExpiresAt;
+        const earned = revenueActive ? safeRpt * gameDaysDelta * revenueMult : 0;
 
-        // churnRate = fraction of users lost per real-world minute
-        const churn = safeUsers * p.churnRate * (deltaSec / 60);
+        // churnRate = fraction of users lost per 30 game days
+        const churn = safeUsers * p.churnRate * (gameDaysDelta / 30);
         const newUsers = Math.max(0, Math.round(safeUsers - churn));
 
         // Accumulate using original earned (before revenuePerTick is updated)
@@ -735,7 +744,9 @@ export const useGameStore = create((set, get) => ({
       })
       // Keep expired products visible as history; only remove if users fully drained
       .filter((p) => {
-        const expired = p.revenueExpiresAt && now >= p.revenueExpiresAt;
+        const expired = p.revenueExpiresGameDateMs
+          ? gameDateMs >= p.revenueExpiresGameDateMs
+          : p.revenueExpiresAt && now >= p.revenueExpiresAt;
         return expired ? true : p.users > 5;
       });
 
@@ -748,11 +759,11 @@ export const useGameStore = create((set, get) => ({
 
     // ── Competitors: passive growth + occasional launches ─────────────────
     competitors = competitors.map((c) => {
-      const launchRoll = Math.random() < (c.launchChance * c.momentum * deltaSec) / 240;
+      const launchRoll = Math.random() < (c.launchChance * c.momentum * gameDaysDelta) / 120;
       const launchUsers = launchRoll ? Math.round(c.baseUsers * (0.6 + Math.random())) : 0;
-      const growth = safeNumber(c.users, 0) * 0.012 * c.momentum * (deltaSec / 60);
+      const growth = safeNumber(c.users, 0) * 0.012 * c.momentum * (gameDaysDelta / 30);
       const users = Math.max(0, Math.round(safeNumber(c.users, 0) + growth + launchUsers));
-      const earned = users * c.revenueRate * (deltaSec / 60);
+      const earned = users * c.revenueRate * gameDaysDelta;
       if (launchRoll) {
         eventLog = [
           {
