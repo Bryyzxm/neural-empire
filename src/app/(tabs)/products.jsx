@@ -10,6 +10,7 @@ import Card from "@/components/ui/Card";
 import Pill from "@/components/ui/Pill";
 import Button from "@/components/ui/Button";
 import StatRow from "@/components/ui/StatRow";
+import ObjectivePanel from "@/components/game/ObjectivePanel";
 import TooltipWord from "@/components/ui/TooltipWord";
 import { formatCurrency, formatNumber, formatPercent } from "@/utils/format";
 import { PRODUCT_TYPES } from "@/data/gameContent";
@@ -264,6 +265,8 @@ export default function ProductsTab() {
             onPress={() => router.push("/product-flow")}
           />
         </View>
+
+        <ObjectivePanel />
 
         {/* Draft card */}
         {currentDraft ? (

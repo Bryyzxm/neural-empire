@@ -29,6 +29,8 @@ export default function SettingsTab() {
   const applyRewardedAdBoost = useGameStore((s) => s.applyRewardedAdBoost);
   const language = useGameStore((s) => s.language);
   const setLanguage = useGameStore((s) => s.setLanguage);
+  const replayTutorial = useGameStore((s) => s.replayTutorial);
+  const skipTutorial = useGameStore((s) => s.skipTutorial);
 
   const handleReset = () => {
     Alert.alert(
@@ -201,6 +203,19 @@ export default function SettingsTab() {
             onPress={handleDonate}
             fullWidth
           />
+        </Card>
+
+        <Card>
+          <Text style={{ fontSize: 16, fontWeight: "600", color: "#111827" }}>
+            {t("settings.tutorial_title")}
+          </Text>
+          <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2, marginBottom: 12 }}>
+            {t("settings.tutorial_subtitle")}
+          </Text>
+          <View style={{ gap: 8 }}>
+            <Button label={t("settings.tutorial_replay")} variant="secondary" onPress={replayTutorial} fullWidth />
+            <Button label={t("settings.tutorial_skip")} variant="secondary" onPress={skipTutorial} fullWidth />
+          </View>
         </Card>
 
         <Card>

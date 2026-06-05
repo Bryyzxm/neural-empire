@@ -15,6 +15,8 @@ export default function TabsLayout() {
   const t = useT();
   const tick = useGameStore((s) => s.tick);
   const persist = useGameStore((s) => s.persist);
+  const tutorial = useGameStore((s) => s.tutorial);
+  const tutorialActive = tutorial?.active;
 
   // Run economy ticks frequently; sim clock advances 1 day every 1.5s.
   useEffect(() => {
@@ -74,20 +76,24 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => <Boxes color={color} size={22} />,
         }}
       />
-      <Tabs.Screen
-        name="research"
-        options={{
-          title: t("tab.research"),
-          tabBarIcon: ({ color }) => <Atom color={color} size={22} />,
-        }}
-      />
-      <Tabs.Screen
-        name="operations"
-        options={{
-          title: t("tab.operations"),
-          tabBarIcon: ({ color }) => <Users color={color} size={22} />,
-        }}
-      />
+      {!tutorialActive ? (
+        <Tabs.Screen
+          name="research"
+          options={{
+            title: t("tab.research"),
+            tabBarIcon: ({ color }) => <Atom color={color} size={22} />,
+          }}
+        />
+      ) : null}
+      {!tutorialActive ? (
+        <Tabs.Screen
+          name="operations"
+          options={{
+            title: t("tab.operations"),
+            tabBarIcon: ({ color }) => <Users color={color} size={22} />,
+          }}
+        />
+      ) : null}
       <Tabs.Screen
         name="settings"
         options={{

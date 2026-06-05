@@ -34,12 +34,27 @@ import {
 
 const STAGE_KEYS = ["select", "data", "training", "turing", "eval"];
 
+function TutorialTip({ k }) {
+  const t = useT();
+  const active = useGameStore((s) => s.tutorial?.active);
+  if (!active) return null;
+  return (
+    <Card style={{ borderColor: "#BFDBFE", backgroundColor: "#EFF6FF" }}>
+      <Pill label={t("tutorial.objective_pill")} variant="soft" dotColor="#2563EB" />
+      <Text style={{ fontSize: 13, color: "#1F2937", marginTop: 8, lineHeight: 19 }}>
+        {t(k)}
+      </Text>
+    </Card>
+  );
+}
+
 // ── Root Screen ───────────────────────────────────────────────────────────────
 export default function ProductFlow() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const t = useT();
   const currentDraft = useGameStore((s) => s.currentDraft);
+  const tutorial = useGameStore((s) => s.tutorial);
   const unlockedResearch = useGameStore((s) => s.unlockedResearch);
   const startDraft = useGameStore((s) => s.startDraft);
   const cancelDraft = useGameStore((s) => s.cancelDraft);
@@ -159,6 +174,11 @@ export default function ProductFlow() {
           gap: 12,
         }}
       >
+        {activeStage === "select" && <TutorialTip k="tutorial.tip.select" />}
+        {activeStage === "data" && <TutorialTip k="tutorial.tip.data" />}
+        {activeStage === "training" && <TutorialTip k="tutorial.tip.training" />}
+        {activeStage === "turing" && <TutorialTip k="tutorial.tip.turing" />}
+        {activeStage === "eval" && <TutorialTip k="tutorial.tip.eval" />}
         {activeStage === "select" && (
           <SelectStage
             unlockedResearch={unlockedResearch}

@@ -19,6 +19,29 @@ const GAME_START_DATE_MS = Date.UTC(2026, 0, 1);
 const GAME_DAY_REAL_MS = 1500;
 const REAL_MS_PER_GAME_MS = (24 * 60 * 60 * 1000) / GAME_DAY_REAL_MS;
 
+export const TUTORIAL_STEPS = {
+  choose_first_product: "choose_first_product",
+  buy_first_data: "buy_first_data",
+  train_first_model: "train_first_model",
+  pass_first_eval: "pass_first_eval",
+  launch_first_product: "launch_first_product",
+  complete: "complete",
+};
+
+const defaultTutorial = () => ({
+  active: true,
+  step: TUTORIAL_STEPS.choose_first_product,
+  dismissedHints: [],
+  firstLaunchAt: null,
+});
+
+const completeTutorialState = (firstLaunchAt = Date.now()) => ({
+  active: false,
+  step: TUTORIAL_STEPS.complete,
+  dismissedHints: [],
+  firstLaunchAt,
+});
+
 const generateId = () =>
   `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
@@ -89,6 +112,7 @@ const defaultGameState = () => ({
   lastTick: Date.now(),
   gameDateMs: GAME_START_DATE_MS,
   schemaVersion: SCHEMA_VERSION,
+  tutorial: defaultTutorial(),
   // staff / operations
   purchasedUpgrades: {}, // { [upgradeId]: currentLevel }
 });
@@ -112,6 +136,9 @@ export const useGameStore = create((set, get) => ({
         set({ ...defaultGameState(), hydrated: true });
         return;
       }
+      const inferredTutorial = parsed.liveProducts?.length > 0 || parsed.totalRevenue > 0
+        ? completeTutorialState(parsed.tutorial?.firstLaunchAt || Date.now())
+        : { ...defaultTutorial(), ...(parsed.tutorial || {}) };
       set({
         ...parsed,
         purchasedUpgrades: parsed.purchasedUpgrades || {},
@@ -121,6 +148,7 @@ export const useGameStore = create((set, get) => ({
         lastCrisisAt: parsed.lastCrisisAt || Date.now(),
         gameDateMs: parsed.gameDateMs || GAME_START_DATE_MS,
         language: parsed.language === "en" ? "en" : "id",
+        tutorial: inferredTutorial,
         hydrated: true,
       });
     } catch (err) {
@@ -156,6 +184,7 @@ export const useGameStore = create((set, get) => ({
         lastCrisisAt: state.lastCrisisAt,
         gameDateMs: state.gameDateMs,
         purchasedUpgrades: state.purchasedUpgrades,
+        tutorial: state.tutorial,
         lastTick: state.lastTick,
         schemaVersion: SCHEMA_VERSION,
       };
@@ -176,6 +205,32 @@ export const useGameStore = create((set, get) => ({
 
   completeOnboarding: () => {
     set({ onboardingComplete: true });
+    get().persist();
+  },
+
+  setTutorialStep: (step) => {
+    set({ tutorial: { ...(get().tutorial || defaultTutorial()), active: step !== TUTORIAL_STEPS.complete, step } });
+    get().persist();
+  },
+
+  completeTutorial: () => {
+    set({ tutorial: completeTutorialState() });
+    get().persist();
+  },
+
+  skipTutorial: () => {
+    set({ tutorial: completeTutorialState() });
+    get().persist();
+  },
+
+  replayTutorial: () => {
+    set({ tutorial: defaultTutorial() });
+    get().persist();
+  },
+
+  dismissTutorialHint: (hintId) => {
+    const tutorial = get().tutorial || defaultTutorial();
+    set({ tutorial: { ...tutorial, dismissedHints: Array.from(new Set([...(tutorial.dismissedHints || []), hintId])) } });
     get().persist();
   },
 
@@ -210,7 +265,7 @@ export const useGameStore = create((set, get) => ({
       turingScore: null, // 0..1, set after Turing Test
       rlhfHistory: [], // last 5 ratings for display
     };
-    set({ currentDraft: draft });
+    set({ currentDraft: draft, tutorial: state.tutorial?.active ? { ...state.tutorial, step: TUTORIAL_STEPS.buy_first_data } : state.tutorial });
     get().persist();
   },
 
@@ -240,6 +295,7 @@ export const useGameStore = create((set, get) => ({
         cashSpent: draft.cashSpent + cost,
         stage: "training",
       },
+      tutorial: state.tutorial?.active ? { ...state.tutorial, step: TUTORIAL_STEPS.train_first_model } : state.tutorial,
     });
     get().persist();
     return { ok: true };
@@ -348,6 +404,7 @@ export const useGameStore = create((set, get) => ({
         rlhfHistory,
         stage: nextStage,
       },
+      tutorial: state.tutorial?.active && nextStage === "turing" ? { ...state.tutorial, step: TUTORIAL_STEPS.pass_first_eval } : state.tutorial,
     });
     get().persist();
     return { ok: true, nextStage };
@@ -397,6 +454,7 @@ export const useGameStore = create((set, get) => ({
         qualityScore: newQuality,
         hallucinationRisk: newHallucination,
       },
+      tutorial: (get().tutorial || defaultTutorial()).active ? { ...(get().tutorial || defaultTutorial()), step: TUTORIAL_STEPS.launch_first_product } : get().tutorial,
     });
     get().persist();
   },
@@ -463,6 +521,7 @@ export const useGameStore = create((set, get) => ({
       currentDraft: null,
       reputation: Math.max(0, state.reputation + reputationDelta),
       totalUsers: state.totalUsers + initialUsers,
+      tutorial: state.tutorial?.active ? completeTutorialState(Date.now()) : state.tutorial,
       eventLog: [
         {
           id: generateId(),
@@ -836,7 +895,7 @@ export const useGameStore = create((set, get) => ({
     }
 
     // ── Random market event (~1 per 3 minutes) ────────────────────────────
-    if (Math.random() < deltaSec / 180) {
+    if (!state.tutorial?.active && Math.random() < deltaSec / 180) {
       const totalWeight = MARKET_EVENTS.reduce((s, e) => s + e.weight, 0);
       let pick = Math.random() * totalWeight;
       let chosen = MARKET_EVENTS[0];

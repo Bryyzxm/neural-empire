@@ -17,6 +17,7 @@ import Pill from "@/components/ui/Pill";
 import Button from "@/components/ui/Button";
 import StatRow from "@/components/ui/StatRow";
 import CircularRing from "@/components/ui/CircularRing";
+import ObjectivePanel from "@/components/game/ObjectivePanel";
 import { formatCurrency, formatGameDate, formatNumber, formatPercent } from "@/utils/format";
 import { COMPANY_STAGES } from "@/data/gameContent";
 
@@ -82,6 +83,8 @@ export default function Dashboard() {
             {t("dashboard.header_subtitle")}
           </Text>
         </View>
+
+        <ObjectivePanel />
 
         {/* KPI grid */}
         <View style={{ flexDirection: "row", gap: 10 }}>
