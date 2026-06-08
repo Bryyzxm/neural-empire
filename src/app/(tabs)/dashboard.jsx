@@ -9,6 +9,7 @@ import {
   Activity,
   Plus,
   Rocket,
+  Clock,
 } from "lucide-react-native";
 import { useGameStore } from "@/store/gameStore";
 import { useT } from "@/i18n/useT";
@@ -40,6 +41,7 @@ export default function Dashboard() {
   const currentDraft = useGameStore((s) => s.currentDraft);
   const competitors = useGameStore((s) => s.competitors || []);
   const activeCrisis = useGameStore((s) => s.activeCrisis);
+  const lastOfflineReward = useGameStore((s) => s.lastOfflineReward);
   const resolveCrisis = useGameStore((s) => s.resolveCrisis);
   const getStage = useGameStore((s) => s.getStage);
 
@@ -85,6 +87,24 @@ export default function Dashboard() {
         </View>
 
         <ObjectivePanel />
+
+        {lastOfflineReward?.earned > 0 ? (
+          <Card>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: "#DCFCE7", alignItems: "center", justifyContent: "center" }}>
+                <Clock size={18} color="#16A34A" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: "700", color: "#111827" }}>
+                  {t("dashboard.idle_title")}
+                </Text>
+                <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
+                  {t("dashboard.idle_body", { amount: formatCurrency(lastOfflineReward.earned) })}
+                </Text>
+              </View>
+            </View>
+          </Card>
+        ) : null}
 
         {/* KPI grid */}
         <View style={{ flexDirection: "row", gap: 10 }}>

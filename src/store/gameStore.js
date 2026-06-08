@@ -110,6 +110,7 @@ const defaultGameState = () => ({
   activeCrisis: null,
   lastCrisisAt: Date.now(),
   lastTick: Date.now(),
+  lastOfflineReward: null,
   gameDateMs: GAME_START_DATE_MS,
   schemaVersion: SCHEMA_VERSION,
   tutorial: defaultTutorial(),
@@ -149,6 +150,7 @@ export const useGameStore = create((set, get) => ({
         gameDateMs: parsed.gameDateMs || GAME_START_DATE_MS,
         language: parsed.language === "en" ? "en" : "id",
         tutorial: inferredTutorial,
+        lastOfflineReward: parsed.lastOfflineReward || null,
         hydrated: true,
       });
     } catch (err) {
@@ -186,6 +188,7 @@ export const useGameStore = create((set, get) => ({
         purchasedUpgrades: state.purchasedUpgrades,
         tutorial: state.tutorial,
         lastTick: state.lastTick,
+        lastOfflineReward: state.lastOfflineReward,
         schemaVersion: SCHEMA_VERSION,
       };
       await AsyncStorage.setItem(SAVE_KEY, JSON.stringify(toSave));
@@ -247,6 +250,7 @@ export const useGameStore = create((set, get) => ({
 
   // ---------- Product Lifecycle ----------
   startDraft: (productTypeId) => {
+    const state = get();
     const productType = PRODUCT_TYPES[productTypeId];
     if (!productType) return;
     const draft = {
@@ -717,8 +721,9 @@ export const useGameStore = create((set, get) => ({
   tick: () => {
     const state = get();
     const now = Date.now();
-    // Cap at 10s — prevents huge catch-up ticks when app is backgrounded
-    const deltaSec = Math.min(10, (now - state.lastTick) / 1000);
+    // Idle economy: catch up while app is closed. Cap at 8h to keep saves sane.
+    const rawDeltaSec = Math.max(0, (now - state.lastTick) / 1000);
+    const deltaSec = Math.min(8 * 60 * 60, rawDeltaSec);
     if (deltaSec < 0.25) return;
     const prevGameDateMs = safeNumber(state.gameDateMs, GAME_START_DATE_MS);
     const gameDeltaMs = deltaSec * 1000 * REAL_MS_PER_GAME_MS;
@@ -932,6 +937,28 @@ export const useGameStore = create((set, get) => ({
       }
     }
 
+    const lastOfflineReward = rawDeltaSec >= 60 && revenueFromProducts > 0
+      ? {
+          earned: revenueFromProducts,
+          seconds: deltaSec,
+          timestamp: now,
+        }
+      : state.lastOfflineReward;
+
+    if (rawDeltaSec >= 60 && revenueFromProducts > 0) {
+      eventLog = [
+        {
+          id: generateId(),
+          timestamp: now,
+          type: "idle",
+          title: tFor(get().language, "event.idle_income_title"),
+          message: tFor(get().language, "event.idle_income_message", { amount: Math.round(revenueFromProducts).toLocaleString() }),
+          tone: "positive",
+        },
+        ...eventLog,
+      ].slice(0, 50);
+    }
+
     const salesHistory = revenueFromProducts > 0
       ? [
           { timestamp: now, revenue: totalRevenue, delta: revenueFromProducts, users: totalUsers },
@@ -953,6 +980,7 @@ export const useGameStore = create((set, get) => ({
       activeCrisis,
       lastCrisisAt,
       eventLog,
+      lastOfflineReward,
       reputation: isNaN(reputation) ? 10 : reputation,
       gameDateMs,
       lastTick: now,
